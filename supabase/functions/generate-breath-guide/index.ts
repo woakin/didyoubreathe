@@ -10,8 +10,8 @@ const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-// Matilda voice - serene, meditative tone
-const DEFAULT_VOICE_ID = "XrExE9yKIg1WjnnlVkGX";
+// Paco voice - native Spanish, clear and calm
+const DEFAULT_VOICE_ID = "UDJf7VRO3sTy4sABpNWO";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -56,22 +56,15 @@ serve(async (req) => {
       );
     }
 
-    // Voice settings optimized for meditation/breathing guides
-    const voiceSettings = isFullGuide 
-      ? {
-          stability: 0.75,
-          similarity_boost: 0.75,
-          style: 0.2,
-          use_speaker_boost: true,
-          speed: 0.85, // Slower for meditation
-        }
-      : {
-          stability: 0.7,
-          similarity_boost: 0.75,
-          style: 0.3,
-          use_speaker_boost: true,
-          speed: 0.9,
-        };
+    // Voice settings optimized for synchronized breathing guides
+    // Using speed 1.0 for precise timing synchronization
+    const voiceSettings = {
+      stability: 0.7,
+      similarity_boost: 0.8,
+      style: 0.0,  // No style exaggeration for consistent timing
+      use_speaker_boost: true,
+      speed: 1.0,  // Normal speed for precise sync with visual timer
+    };
 
     // Generate audio with ElevenLabs
     // For long texts (full guides), use the standard endpoint which handles up to 5000 chars

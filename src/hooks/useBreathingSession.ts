@@ -3,10 +3,16 @@ import { BreathingPattern, BreathPhase, SessionState } from '@/types/breathing';
 
 interface UseBreathingSessionProps {
   pattern: BreathingPattern;
+  preparationTime?: number;
   onComplete?: () => void;
 }
 
-export function useBreathingSession({ pattern, onComplete }: UseBreathingSessionProps) {
+export function useBreathingSession({ pattern, preparationTime = 0, onComplete }: UseBreathingSessionProps) {
+  const calculateTotalTime = useCallback((p: BreathingPattern, prepTime: number): number => {
+    const cycleTime = p.inhale + p.holdIn + p.exhale + p.holdOut;
+    return prepTime + (cycleTime * p.cycles);
+  }, []);
+
   const [state, setState] = useState<SessionState>({
     isActive: false,
     isPaused: false,
@@ -14,18 +20,15 @@ export function useBreathingSession({ pattern, onComplete }: UseBreathingSession
     currentCycle: 0,
     totalCycles: pattern.cycles,
     phaseTimeRemaining: pattern.inhale,
-    totalTimeRemaining: calculateTotalTime(pattern),
+    totalTimeRemaining: calculateTotalTime(pattern, preparationTime),
   });
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  function calculateTotalTime(p: BreathingPattern): number {
-    const cycleTime = p.inhale + p.holdIn + p.exhale + p.holdOut;
-    return cycleTime * p.cycles;
-  }
-
   const getNextPhase = useCallback((currentPhase: BreathPhase): BreathPhase => {
     switch (currentPhase) {
+      case 'prepare':
+        return 'inhale';
       case 'inhale':
         return pattern.holdIn > 0 ? 'holdIn' : 'exhale';
       case 'holdIn':
@@ -41,6 +44,8 @@ export function useBreathingSession({ pattern, onComplete }: UseBreathingSession
 
   const getPhaseDuration = useCallback((phase: BreathPhase): number => {
     switch (phase) {
+      case 'prepare':
+        return preparationTime;
       case 'inhale':
         return pattern.inhale;
       case 'holdIn':
@@ -52,7 +57,7 @@ export function useBreathingSession({ pattern, onComplete }: UseBreathingSession
       default:
         return 0;
     }
-  }, [pattern]);
+  }, [pattern, preparationTime]);
 
   const tick = useCallback(() => {
     setState((prev) => {
@@ -76,12 +81,13 @@ export function useBreathingSession({ pattern, onComplete }: UseBreathingSession
       // Phase complete, move to next
       if (newPhaseTime <= 0) {
         const nextPhase = getNextPhase(prev.currentPhase);
-        const isNewCycle = nextPhase === 'inhale' && prev.currentPhase !== 'inhale';
+        const isNewCycle = nextPhase === 'inhale' && prev.currentPhase !== 'inhale' && prev.currentPhase !== 'prepare';
+        const isPrepToInhale = prev.currentPhase === 'prepare' && nextPhase === 'inhale';
         
         return {
           ...prev,
           currentPhase: nextPhase,
-          currentCycle: isNewCycle ? prev.currentCycle + 1 : prev.currentCycle,
+          currentCycle: isPrepToInhale ? 1 : (isNewCycle ? prev.currentCycle + 1 : prev.currentCycle),
           phaseTimeRemaining: getPhaseDuration(nextPhase),
           totalTimeRemaining: newTotalTime,
         };
@@ -113,16 +119,17 @@ export function useBreathingSession({ pattern, onComplete }: UseBreathingSession
   }, [state.isActive, state.isPaused, tick]);
 
   const start = useCallback(() => {
+    const hasPrep = preparationTime > 0;
     setState({
       isActive: true,
       isPaused: false,
-      currentPhase: 'inhale',
-      currentCycle: 1,
+      currentPhase: hasPrep ? 'prepare' : 'inhale',
+      currentCycle: hasPrep ? 0 : 1,
       totalCycles: pattern.cycles,
-      phaseTimeRemaining: pattern.inhale,
-      totalTimeRemaining: calculateTotalTime(pattern),
+      phaseTimeRemaining: hasPrep ? preparationTime : pattern.inhale,
+      totalTimeRemaining: calculateTotalTime(pattern, preparationTime),
     });
-  }, [pattern]);
+  }, [pattern, preparationTime, calculateTotalTime]);
 
   const pause = useCallback(() => {
     setState((prev) => ({ ...prev, isPaused: true }));
@@ -140,9 +147,9 @@ export function useBreathingSession({ pattern, onComplete }: UseBreathingSession
       currentCycle: 0,
       totalCycles: pattern.cycles,
       phaseTimeRemaining: pattern.inhale,
-      totalTimeRemaining: calculateTotalTime(pattern),
+      totalTimeRemaining: calculateTotalTime(pattern, preparationTime),
     });
-  }, [pattern]);
+  }, [pattern, preparationTime, calculateTotalTime]);
 
   return {
     state,

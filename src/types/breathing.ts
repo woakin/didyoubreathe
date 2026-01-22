@@ -18,7 +18,7 @@ export interface BreathingPattern {
   cycles: number;
 }
 
-export type BreathPhase = 'idle' | 'inhale' | 'holdIn' | 'exhale' | 'holdOut' | 'complete';
+export type BreathPhase = 'idle' | 'prepare' | 'inhale' | 'holdIn' | 'exhale' | 'holdOut' | 'complete';
 
 export interface SessionState {
   isActive: boolean;
