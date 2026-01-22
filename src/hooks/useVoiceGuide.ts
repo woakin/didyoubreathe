@@ -1,12 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { BreathPhase } from '@/types/breathing';
-
-interface VoicePhrase {
-  phase: BreathPhase;
-  text: string;
-  key: string;
-}
+import { getScriptForTechnique } from '@/data/breathingScripts';
 
 interface UseVoiceGuideProps {
   techniqueId: string;
@@ -24,27 +18,12 @@ const getSelectedVoice = (): string => {
   return DEFAULT_VOICE_ID;
 };
 
-// Phrases for each breathing phase
-const getPhrasesForTechnique = (techniqueId: string): VoicePhrase[] => {
-  const baseKey = techniqueId.replace(/-/g, '_');
-  const voiceId = getSelectedVoice();
-  
-  return [
-    { phase: 'inhale', text: 'Inhala profundamente...', key: `${baseKey}_${voiceId}_inhale` },
-    { phase: 'holdIn', text: 'Mantén el aire...', key: `${baseKey}_${voiceId}_hold_in` },
-    { phase: 'exhale', text: 'Exhala lentamente...', key: `${baseKey}_${voiceId}_exhale` },
-    { phase: 'holdOut', text: 'Pausa y relájate...', key: `${baseKey}_${voiceId}_hold_out` },
-    { phase: 'complete', text: 'Bien hecho. Has completado tu práctica de respiración.', key: `${baseKey}_${voiceId}_complete` },
-  ];
-};
-
 export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const audioCache = useRef<Map<BreathPhase, HTMLAudioElement>>(new Map());
-  const currentAudio = useRef<HTMLAudioElement | null>(null);
+  const fullAudio = useRef<HTMLAudioElement | null>(null);
   const hasUserInteracted = useRef(false);
 
   // Mark that user has interacted (needed for audio autoplay)
@@ -52,116 +31,108 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
     hasUserInteracted.current = true;
   }, []);
 
-  // Process phrases in batches for Starter plan (3 concurrent requests allowed)
-  const processBatch = async (phrases: VoicePhrase[], batchSize: number = 3) => {
-    for (let i = 0; i < phrases.length; i += batchSize) {
-      const batch = phrases.slice(i, i + batchSize);
-      
-      await Promise.all(
-        batch.map(async (phrase) => {
-          try {
-            const response = await supabase.functions.invoke('generate-breath-guide', {
-              body: { text: phrase.text, phraseKey: phrase.key, voiceId: getSelectedVoice() },
-            });
+  // Get the cache key for the full audio guide
+  const getAudioKey = useCallback(() => {
+    const voiceId = getSelectedVoice();
+    return `${techniqueId.replace(/-/g, '_')}_${voiceId}_full`;
+  }, [techniqueId]);
 
-            if (response.error) {
-              console.warn(`Error generating audio for ${phrase.key}:`, response.error);
-              return;
-            }
-
-            const audioUrl = response.data?.audioUrl;
-            if (audioUrl) {
-              const audio = new Audio(audioUrl);
-              audio.preload = 'auto';
-              
-              await new Promise<void>((resolve) => {
-                audio.oncanplaythrough = () => resolve();
-                audio.onerror = () => {
-                  console.warn(`Failed to load audio: ${phrase.key}`);
-                  resolve();
-                };
-                audio.load();
-              });
-
-              audioCache.current.set(phrase.phase, audio);
-            }
-          } catch (err) {
-            console.warn(`Error processing phrase ${phrase.key}:`, err);
-          }
-        })
-      );
-      
-      // Small delay between batches
-      if (i + batchSize < phrases.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-  };
-
-  // Pre-generate all audio phrases with optimized batching for Starter plan
+  // Pre-generate or fetch the full audio guide
   const preloadAudio = useCallback(async () => {
     if (!enabled || !techniqueId) return;
+
+    const script = getScriptForTechnique(techniqueId);
+    if (!script) {
+      setError('No script available for this technique');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
-    const phrases = getPhrasesForTechnique(techniqueId);
-    audioCache.current.clear();
-
     try {
-      await processBatch(phrases, 3); // Starter plan allows 3 concurrent
-      setIsReady(audioCache.current.size > 0);
+      const audioKey = getAudioKey();
+      const voiceId = getSelectedVoice();
+
+      const response = await supabase.functions.invoke('generate-breath-guide', {
+        body: { 
+          text: script.script, 
+          phraseKey: audioKey, 
+          voiceId,
+          isFullGuide: true 
+        },
+      });
+
+      if (response.error) {
+        console.error('Error generating full guide:', response.error);
+        setError('No se pudo generar la guía de voz');
+        return;
+      }
+
+      const audioUrl = response.data?.audioUrl;
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.preload = 'auto';
+        
+        await new Promise<void>((resolve, reject) => {
+          audio.oncanplaythrough = () => resolve();
+          audio.onerror = () => reject(new Error('Failed to load audio'));
+          audio.load();
+        });
+
+        fullAudio.current = audio;
+        setIsReady(true);
+      }
     } catch (err) {
-      console.error('Error preloading audio:', err);
+      console.error('Error preloading full audio:', err);
       setError('No se pudo cargar la guía de voz');
     } finally {
       setIsLoading(false);
     }
-  }, [enabled, techniqueId]);
+  }, [enabled, techniqueId, getAudioKey]);
 
-  // Play audio for a specific phase
-  const playPhase = useCallback((phase: BreathPhase) => {
-    if (!enabled || !hasUserInteracted.current) return;
+  // Play the full guide from the beginning
+  const playFullGuide = useCallback(() => {
+    if (!enabled || !hasUserInteracted.current || !fullAudio.current) return;
 
-    // Stop current audio if playing
-    if (currentAudio.current) {
-      currentAudio.current.pause();
-      currentAudio.current.currentTime = 0;
-    }
-
-    const audio = audioCache.current.get(phase);
-    if (audio) {
-      currentAudio.current = audio;
-      audio.currentTime = 0;
-      audio.play().catch((err) => {
-        console.warn('Audio playback failed:', err);
-      });
-    }
+    fullAudio.current.currentTime = 0;
+    fullAudio.current.play().catch((err) => {
+      console.warn('Audio playback failed:', err);
+    });
   }, [enabled]);
 
-  // Stop all audio
-  const stop = useCallback(() => {
-    if (currentAudio.current) {
-      currentAudio.current.pause();
-      currentAudio.current.currentTime = 0;
-      currentAudio.current = null;
+  // Pause the guide
+  const pauseGuide = useCallback(() => {
+    if (fullAudio.current) {
+      fullAudio.current.pause();
     }
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stop();
-      audioCache.current.clear();
-    };
-  }, [stop]);
+  // Resume the guide
+  const resumeGuide = useCallback(() => {
+    if (!enabled || !hasUserInteracted.current || !fullAudio.current) return;
+
+    fullAudio.current.play().catch((err) => {
+      console.warn('Audio playback failed:', err);
+    });
+  }, [enabled]);
+
+  // Stop the guide completely
+  const stop = useCallback(() => {
+    if (fullAudio.current) {
+      fullAudio.current.pause();
+      fullAudio.current.currentTime = 0;
+    }
+  }, []);
 
   return {
     isLoading,
     isReady,
     error,
     preloadAudio,
-    playPhase,
+    playFullGuide,
+    pauseGuide,
+    resumeGuide,
     stop,
     markUserInteraction,
   };

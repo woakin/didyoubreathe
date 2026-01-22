@@ -11,14 +11,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { BreathPhase } from '@/types/breathing';
 
 export default function Breathe() {
   const { techniqueId } = useParams<{ techniqueId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const previousPhase = useRef<BreathPhase>('idle');
 
   const technique = useMemo(() => {
     return getTechniqueById(techniqueId || '');
@@ -94,20 +92,12 @@ export default function Breathe() {
     enabled: voiceEnabled,
   });
 
-  // Play voice when phase changes
+  // Stop voice when session stops or completes
   useEffect(() => {
-    if (state.isActive && state.currentPhase !== previousPhase.current) {
-      previousPhase.current = state.currentPhase;
-      voiceGuide.playPhase(state.currentPhase);
-    }
-  }, [state.currentPhase, state.isActive, voiceGuide]);
-
-  // Stop voice when session stops
-  useEffect(() => {
-    if (!state.isActive) {
+    if (!state.isActive || state.currentPhase === 'complete') {
       voiceGuide.stop();
     }
-  }, [state.isActive, voiceGuide]);
+  }, [state.isActive, state.currentPhase, voiceGuide]);
 
   const handleStart = useCallback(async () => {
     voiceGuide.markUserInteraction();
@@ -120,12 +110,27 @@ export default function Breathe() {
     }
     
     start();
+    
+    // Play the full audio guide when session starts
+    if (voiceEnabled && voiceGuide.isReady) {
+      voiceGuide.playFullGuide();
+    }
   }, [voiceGuide, voiceEnabled, start]);
 
+  const handlePause = useCallback(() => {
+    pause();
+    voiceGuide.pauseGuide();
+  }, [pause, voiceGuide]);
+
+  const handleResume = useCallback(() => {
+    resume();
+    voiceGuide.resumeGuide();
+  }, [resume, voiceGuide]);
+
   const handleStop = useCallback(() => {
-    voiceGuide.stop();
     stop();
-  }, [voiceGuide, stop]);
+    voiceGuide.stop();
+  }, [stop, voiceGuide]);
 
   if (!technique) {
     return (
@@ -285,7 +290,7 @@ export default function Breathe() {
                 
                 <Button
                   size="lg"
-                  onClick={state.isPaused ? resume : pause}
+                  onClick={state.isPaused ? handleResume : handlePause}
                   className="w-40 h-14 text-lg"
                 >
                   {state.isPaused ? (
