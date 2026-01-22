@@ -9,6 +9,7 @@ import Techniques from "./pages/Techniques";
 import Breathe from "./pages/Breathe";
 import Auth from "./pages/Auth";
 import Progress from "./pages/Progress";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/breathe/:techniqueId" element={<Breathe />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/progress" element={<Progress />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

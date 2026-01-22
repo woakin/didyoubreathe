@@ -13,16 +13,28 @@ interface UseVoiceGuideProps {
   enabled: boolean;
 }
 
+const VOICE_STORAGE_KEY = 'breathe-voice-preference';
+const DEFAULT_VOICE_ID = 'XrExE9yKIg1WjnnlVkGX';
+
+// Get user's preferred voice from localStorage
+const getSelectedVoice = (): string => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(VOICE_STORAGE_KEY) || DEFAULT_VOICE_ID;
+  }
+  return DEFAULT_VOICE_ID;
+};
+
 // Phrases for each breathing phase
 const getPhrasesForTechnique = (techniqueId: string): VoicePhrase[] => {
   const baseKey = techniqueId.replace(/-/g, '_');
+  const voiceId = getSelectedVoice();
   
   return [
-    { phase: 'inhale', text: 'Inhala profundamente...', key: `${baseKey}_inhale` },
-    { phase: 'holdIn', text: 'Mantén el aire...', key: `${baseKey}_hold_in` },
-    { phase: 'exhale', text: 'Exhala lentamente...', key: `${baseKey}_exhale` },
-    { phase: 'holdOut', text: 'Pausa y relájate...', key: `${baseKey}_hold_out` },
-    { phase: 'complete', text: 'Bien hecho. Has completado tu práctica de respiración.', key: `${baseKey}_complete` },
+    { phase: 'inhale', text: 'Inhala profundamente...', key: `${baseKey}_${voiceId}_inhale` },
+    { phase: 'holdIn', text: 'Mantén el aire...', key: `${baseKey}_${voiceId}_hold_in` },
+    { phase: 'exhale', text: 'Exhala lentamente...', key: `${baseKey}_${voiceId}_exhale` },
+    { phase: 'holdOut', text: 'Pausa y relájate...', key: `${baseKey}_${voiceId}_hold_out` },
+    { phase: 'complete', text: 'Bien hecho. Has completado tu práctica de respiración.', key: `${baseKey}_${voiceId}_complete` },
   ];
 };
 
@@ -49,7 +61,7 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
         batch.map(async (phrase) => {
           try {
             const response = await supabase.functions.invoke('generate-breath-guide', {
-              body: { text: phrase.text, phraseKey: phrase.key },
+              body: { text: phrase.text, phraseKey: phrase.key, voiceId: getSelectedVoice() },
             });
 
             if (response.error) {
