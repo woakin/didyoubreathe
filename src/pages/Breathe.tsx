@@ -1,21 +1,24 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { BreathingCircle } from '@/components/BreathingCircle';
 import { Button } from '@/components/ui/button';
 import { getTechniqueById } from '@/data/techniques';
 import { useBreathingSession } from '@/hooks/useBreathingSession';
+import { useVoiceGuide } from '@/hooks/useVoiceGuide';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Play, Pause, Square, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { BreathPhase } from '@/types/breathing';
 
 export default function Breathe() {
   const { techniqueId } = useParams<{ techniqueId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [sessionStartTime] = useState<Date | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const previousPhase = useRef<BreathPhase>('idle');
 
   const technique = useMemo(() => {
     return getTechniqueById(techniqueId || '');
@@ -85,6 +88,44 @@ export default function Breathe() {
     pattern: technique?.pattern || { inhale: 4, holdIn: 0, exhale: 4, holdOut: 0, cycles: 1 },
     onComplete: handleSessionComplete,
   });
+
+  const voiceGuide = useVoiceGuide({
+    techniqueId: techniqueId || '',
+    enabled: voiceEnabled,
+  });
+
+  // Play voice when phase changes
+  useEffect(() => {
+    if (state.isActive && state.currentPhase !== previousPhase.current) {
+      previousPhase.current = state.currentPhase;
+      voiceGuide.playPhase(state.currentPhase);
+    }
+  }, [state.currentPhase, state.isActive, voiceGuide]);
+
+  // Stop voice when session stops
+  useEffect(() => {
+    if (!state.isActive) {
+      voiceGuide.stop();
+    }
+  }, [state.isActive, voiceGuide]);
+
+  const handleStart = useCallback(async () => {
+    voiceGuide.markUserInteraction();
+    
+    // Preload audio if not ready
+    if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading) {
+      toast.loading('Preparando guía de voz...', { id: 'voice-loading' });
+      await voiceGuide.preloadAudio();
+      toast.dismiss('voice-loading');
+    }
+    
+    start();
+  }, [voiceGuide, voiceEnabled, start]);
+
+  const handleStop = useCallback(() => {
+    voiceGuide.stop();
+    stop();
+  }, [voiceGuide, stop]);
 
   if (!technique) {
     return (
@@ -171,65 +212,97 @@ export default function Breathe() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-4 py-8 animate-fade-in">
-          {!state.isActive ? (
-            <Button
-              size="lg"
-              onClick={start}
-              className="w-40 h-14 text-lg"
-            >
-              <Play className="h-5 w-5 mr-2" />
-              Comenzar
-            </Button>
-          ) : state.currentPhase === 'complete' ? (
-            <>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={start}
-                className="h-14"
-              >
-                <RotateCcw className="h-5 w-5 mr-2" />
-                Repetir
-              </Button>
-              <Button
-                size="lg"
-                onClick={() => navigate('/techniques')}
-                className="h-14"
-              >
-                Continuar
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={stop}
-                className="h-14 w-14"
-              >
-                <Square className="h-5 w-5" />
-              </Button>
-              
+        <div className="flex flex-col items-center gap-4 py-8 animate-fade-in">
+          {/* Voice toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className="text-muted-foreground"
+          >
+            {voiceEnabled ? (
+              <>
+                <Volume2 className="h-4 w-4 mr-2" />
+                Guía de voz activada
+              </>
+            ) : (
+              <>
+                <VolumeX className="h-4 w-4 mr-2" />
+                Guía de voz desactivada
+              </>
+            )}
+          </Button>
+
+          <div className="flex items-center justify-center gap-4">
+            {!state.isActive ? (
               <Button
                 size="lg"
-                onClick={state.isPaused ? resume : pause}
+                onClick={handleStart}
+                disabled={voiceGuide.isLoading}
                 className="w-40 h-14 text-lg"
               >
-                {state.isPaused ? (
+                {voiceGuide.isLoading ? (
                   <>
-                    <Play className="h-5 w-5 mr-2" />
-                    Continuar
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Cargando...
                   </>
                 ) : (
                   <>
-                    <Pause className="h-5 w-5 mr-2" />
-                    Pausar
+                    <Play className="h-5 w-5 mr-2" />
+                    Comenzar
                   </>
                 )}
               </Button>
-            </>
-          )}
+            ) : state.currentPhase === 'complete' ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleStart}
+                  className="h-14"
+                >
+                  <RotateCcw className="h-5 w-5 mr-2" />
+                  Repetir
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => navigate('/techniques')}
+                  className="h-14"
+                >
+                  Continuar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleStop}
+                  className="h-14 w-14"
+                >
+                  <Square className="h-5 w-5" />
+                </Button>
+                
+                <Button
+                  size="lg"
+                  onClick={state.isPaused ? resume : pause}
+                  className="w-40 h-14 text-lg"
+                >
+                  {state.isPaused ? (
+                    <>
+                      <Play className="h-5 w-5 mr-2" />
+                      Continuar
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-5 w-5 mr-2" />
+                      Pausar
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </PageTransition>
     </MainLayout>

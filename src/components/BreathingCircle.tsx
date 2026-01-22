@@ -12,6 +12,7 @@ interface BreathingCircleProps {
 }
 
 const phaseLabels: Record<BreathPhase, string> = {
+  idle: 'Prepárate',
   inhale: 'Inhala',
   holdIn: 'Mantén',
   exhale: 'Exhala',
@@ -20,6 +21,7 @@ const phaseLabels: Record<BreathPhase, string> = {
 };
 
 const phaseColors: Record<BreathPhase, string> = {
+  idle: 'from-muted/30 to-muted/50',
   inhale: 'from-breath-inhale/40 to-breath-inhale/60',
   holdIn: 'from-breath-hold/40 to-breath-hold/60',
   exhale: 'from-breath-exhale/40 to-breath-exhale/60',
