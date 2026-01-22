@@ -135,7 +135,7 @@ export function BreathingCircle({
         
         {isActive && phase !== 'complete' && phase !== 'prepare' && (
           <span className="text-5xl font-light text-foreground/90">
-            {phaseTimeRemaining}
+            {phaseDuration - phaseTimeRemaining + 1}
           </span>
         )}
         
