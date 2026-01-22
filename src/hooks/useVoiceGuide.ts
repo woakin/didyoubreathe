@@ -40,7 +40,7 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
     hasUserInteracted.current = true;
   }, []);
 
-  // Pre-generate all audio phrases
+  // Pre-generate all audio phrases sequentially to avoid rate limits
   const preloadAudio = useCallback(async () => {
     if (!enabled || !techniqueId) return;
 
@@ -48,49 +48,45 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
     setError(null);
 
     const phrases = getPhrasesForTechnique(techniqueId);
+    audioCache.current.clear();
 
     try {
-      const results = await Promise.all(
-        phrases.map(async (phrase) => {
-          try {
-            const response = await supabase.functions.invoke('generate-breath-guide', {
-              body: { text: phrase.text, phraseKey: phrase.key },
+      // Process sequentially to avoid ElevenLabs rate limits (max 2 concurrent)
+      for (const phrase of phrases) {
+        try {
+          const response = await supabase.functions.invoke('generate-breath-guide', {
+            body: { text: phrase.text, phraseKey: phrase.key },
+          });
+
+          if (response.error) {
+            console.warn(`Error generating audio for ${phrase.key}:`, response.error);
+            continue;
+          }
+
+          const audioUrl = response.data?.audioUrl;
+          if (audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.preload = 'auto';
+            
+            // Wait for audio to be loadable
+            await new Promise<void>((resolve) => {
+              audio.oncanplaythrough = () => resolve();
+              audio.onerror = () => {
+                console.warn(`Failed to load audio: ${phrase.key}`);
+                resolve();
+              };
+              audio.load();
             });
 
-            if (response.error) {
-              console.error(`Error generating audio for ${phrase.key}:`, response.error);
-              return null;
-            }
-
-            const audioUrl = response.data?.audioUrl;
-            if (audioUrl) {
-              const audio = new Audio(audioUrl);
-              audio.preload = 'auto';
-              
-              // Wait for audio to be loadable
-              await new Promise<void>((resolve, reject) => {
-                audio.oncanplaythrough = () => resolve();
-                audio.onerror = () => reject(new Error(`Failed to load audio: ${phrase.key}`));
-                audio.load();
-              });
-
-              return { phase: phrase.phase, audio };
-            }
-            return null;
-          } catch (err) {
-            console.error(`Error processing phrase ${phrase.key}:`, err);
-            return null;
+            audioCache.current.set(phrase.phase, audio);
           }
-        })
-      );
-
-      // Store in cache
-      audioCache.current.clear();
-      results.forEach((result) => {
-        if (result) {
-          audioCache.current.set(result.phase, result.audio);
+        } catch (err) {
+          console.warn(`Error processing phrase ${phrase.key}:`, err);
         }
-      });
+        
+        // Small delay between requests to be safe
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
 
       setIsReady(audioCache.current.size > 0);
     } catch (err) {
