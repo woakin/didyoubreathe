@@ -9,8 +9,15 @@ const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Paco - native Spanish voice
-const PACO_VOICE_ID = "UDJf7VRO3sTy4sABpNWO";
+// All native Spanish voices
+const ALL_VOICES = [
+  { id: "UDJf7VRO3sTy4sABpNWO", name: "Paco" },
+  { id: "szJ1F5SgxGkjGanyygoW", name: "Ligia" },
+  { id: "cMKZRsVE5V7xf6qCp9fF", name: "Víctor" },
+  { id: "t6OyuZ2N3Y2dqVstuTwK", name: "Fer" },
+  { id: "Nal4Voh56EtyuScXh27S", name: "Nina" },
+  { id: "vAxdfYVShGAQEwKYqDZR", name: "Miguel" },
+];
 
 // All breathing scripts with their content
 const breathingScripts = {
@@ -156,9 +163,9 @@ Pausa final... dos... tres... cuatro.`,
   },
 };
 
-async function generateAudio(text: string): Promise<ArrayBuffer> {
+async function generateAudio(text: string, voiceId: string): Promise<ArrayBuffer> {
   const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${PACO_VOICE_ID}?output_format=mp3_44100_128`,
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
     {
       method: "POST",
       headers: {
@@ -197,71 +204,87 @@ Deno.serve(async (req) => {
       throw new Error("ELEVENLABS_API_KEY not configured");
     }
 
+    // Parse request body for optional voiceIds filter
+    let voicesToGenerate = ALL_VOICES;
+    try {
+      const body = await req.json();
+      if (body.voiceIds && Array.isArray(body.voiceIds)) {
+        voicesToGenerate = ALL_VOICES.filter(v => body.voiceIds.includes(v.id));
+      }
+    } catch {
+      // No body or invalid JSON, use all voices
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const results: Record<string, { success: boolean; error?: string; url?: string }> = {};
+    const results: Record<string, Record<string, { success: boolean; error?: string; url?: string }>> = {};
 
-    // Process each technique
-    for (const [techniqueId, { script }] of Object.entries(breathingScripts)) {
-      const fileName = `${techniqueId.replace(/-/g, "_")}_${PACO_VOICE_ID}_full.mp3`;
+    // Process each voice
+    for (const voice of voicesToGenerate) {
+      results[voice.name] = {};
 
-      try {
-        // Check if file already exists
-        const { data: existingFile } = await supabase.storage
-          .from("audio-guides")
-          .list("", { search: fileName });
+      // Process each technique for this voice
+      for (const [techniqueId, { script }] of Object.entries(breathingScripts)) {
+        const fileName = `${techniqueId.replace(/-/g, "_")}_${voice.id}_full.mp3`;
 
-        if (existingFile && existingFile.length > 0) {
+        try {
+          // Check if file already exists
+          const { data: existingFile } = await supabase.storage
+            .from("audio-guides")
+            .list("", { search: fileName });
+
+          if (existingFile && existingFile.length > 0) {
+            const { data: urlData } = supabase.storage
+              .from("audio-guides")
+              .getPublicUrl(fileName);
+
+            results[voice.name][techniqueId] = {
+              success: true,
+              url: urlData.publicUrl,
+            };
+            console.log(`[${voice.name}/${techniqueId}] Already exists, skipping`);
+            continue;
+          }
+
+          // Generate audio
+          console.log(`[${voice.name}/${techniqueId}] Generating audio...`);
+          const audioBuffer = await generateAudio(script, voice.id);
+
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from("audio-guides")
+            .upload(fileName, audioBuffer, {
+              contentType: "audio/mpeg",
+              upsert: true,
+            });
+
+          if (uploadError) {
+            throw new Error(`Upload failed: ${uploadError.message}`);
+          }
+
           const { data: urlData } = supabase.storage
             .from("audio-guides")
             .getPublicUrl(fileName);
 
-          results[techniqueId] = {
+          results[voice.name][techniqueId] = {
             success: true,
             url: urlData.publicUrl,
           };
-          console.log(`[${techniqueId}] Already exists, skipping`);
-          continue;
+          console.log(`[${voice.name}/${techniqueId}] Generated and uploaded successfully`);
+        } catch (error) {
+          console.error(`[${voice.name}/${techniqueId}] Error:`, error);
+          results[voice.name][techniqueId] = {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+          };
         }
-
-        // Generate audio
-        console.log(`[${techniqueId}] Generating audio...`);
-        const audioBuffer = await generateAudio(script);
-
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from("audio-guides")
-          .upload(fileName, audioBuffer, {
-            contentType: "audio/mpeg",
-            upsert: true,
-          });
-
-        if (uploadError) {
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-
-        const { data: urlData } = supabase.storage
-          .from("audio-guides")
-          .getPublicUrl(fileName);
-
-        results[techniqueId] = {
-          success: true,
-          url: urlData.publicUrl,
-        };
-        console.log(`[${techniqueId}] Generated and uploaded successfully`);
-      } catch (error) {
-        console.error(`[${techniqueId}] Error:`, error);
-        results[techniqueId] = {
-          success: false,
-          error: error instanceof Error ? error.message : "Unknown error",
-        };
       }
     }
 
     return new Response(
       JSON.stringify({
         message: "Pre-generation complete",
-        voiceId: PACO_VOICE_ID,
+        voices: voicesToGenerate.map(v => v.name),
         results,
       }),
       {
