@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, phraseKey, voiceId = DEFAULT_VOICE_ID } = await req.json();
+    const { text, phraseKey, voiceId = DEFAULT_VOICE_ID, isFullGuide = false } = await req.json();
 
     if (!text || !phraseKey) {
       return new Response(
@@ -56,7 +56,25 @@ serve(async (req) => {
       );
     }
 
+    // Voice settings optimized for meditation/breathing guides
+    const voiceSettings = isFullGuide 
+      ? {
+          stability: 0.75,
+          similarity_boost: 0.75,
+          style: 0.2,
+          use_speaker_boost: true,
+          speed: 0.85, // Slower for meditation
+        }
+      : {
+          stability: 0.7,
+          similarity_boost: 0.75,
+          style: 0.3,
+          use_speaker_boost: true,
+          speed: 0.9,
+        };
+
     // Generate audio with ElevenLabs
+    // For long texts (full guides), use the standard endpoint which handles up to 5000 chars
     const ttsResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
       {
@@ -68,13 +86,7 @@ serve(async (req) => {
         body: JSON.stringify({
           text,
           model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.7,
-            similarity_boost: 0.75,
-            style: 0.3,
-            use_speaker_boost: true,
-            speed: 0.9,
-          },
+          voice_settings: voiceSettings,
         }),
       }
     );
@@ -83,7 +95,7 @@ serve(async (req) => {
       const errorText = await ttsResponse.text();
       console.error("ElevenLabs API error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to generate audio" }),
+        JSON.stringify({ error: "Failed to generate audio", details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
