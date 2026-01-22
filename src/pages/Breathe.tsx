@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { BreathingCircle } from '@/components/BreathingCircle';
 import { Button } from '@/components/ui/button';
 import { getTechniqueById } from '@/data/techniques';
+import { getScriptForTechnique } from '@/data/breathingScripts';
 import { useBreathingSession } from '@/hooks/useBreathingSession';
 import { useVoiceGuide } from '@/hooks/useVoiceGuide';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,11 +23,21 @@ export default function Breathe() {
     return getTechniqueById(techniqueId || '');
   }, [techniqueId]);
 
+  const script = useMemo(() => {
+    return getScriptForTechnique(techniqueId || '');
+  }, [techniqueId]);
+
+  // Get preparation time from script, or 0 if voice is disabled
+  const preparationTime = useMemo(() => {
+    if (!voiceEnabled || !script) return 0;
+    return script.preparationSeconds;
+  }, [voiceEnabled, script]);
+
   const calculateTotalTime = useCallback(() => {
     if (!technique) return 0;
     const p = technique.pattern;
-    return (p.inhale + p.holdIn + p.exhale + p.holdOut) * p.cycles;
-  }, [technique]);
+    return preparationTime + (p.inhale + p.holdIn + p.exhale + p.holdOut) * p.cycles;
+  }, [technique, preparationTime]);
 
   const handleSessionComplete = useCallback(async () => {
     if (!user || !technique) return;
@@ -84,6 +95,7 @@ export default function Breathe() {
 
   const { state, start, pause, resume, stop } = useBreathingSession({
     pattern: technique?.pattern || { inhale: 4, holdIn: 0, exhale: 4, holdOut: 0, cycles: 1 },
+    preparationTime,
     onComplete: handleSessionComplete,
   });
 
@@ -149,6 +161,8 @@ export default function Breathe() {
 
   const getPhaseDuration = (phase: string) => {
     switch (phase) {
+      case 'prepare':
+        return preparationTime;
       case 'inhale':
         return technique.pattern.inhale;
       case 'holdIn':
@@ -180,7 +194,9 @@ export default function Breathe() {
           <div className="text-center">
             <h1 className="font-semibold text-foreground">{technique.name}</h1>
             <p className="text-xs text-muted-foreground">
-              Ciclo {state.currentCycle} de {state.totalCycles}
+              {state.currentPhase === 'prepare' 
+                ? 'Preparación...' 
+                : `Ciclo ${state.currentCycle} de ${state.totalCycles}`}
             </p>
           </div>
           

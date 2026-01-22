@@ -8,7 +8,7 @@ interface UseVoiceGuideProps {
 }
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
-const DEFAULT_VOICE_ID = 'XrExE9yKIg1WjnnlVkGX';
+const DEFAULT_VOICE_ID = 'UDJf7VRO3sTy4sABpNWO'; // Paco - native Spanish voice
 
 // Get user's preferred voice from localStorage
 const getSelectedVoice = (): string => {

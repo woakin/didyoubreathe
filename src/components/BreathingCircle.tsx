@@ -13,6 +13,7 @@ interface BreathingCircleProps {
 
 const phaseLabels: Record<BreathPhase, string> = {
   idle: 'Prepárate',
+  prepare: 'Prepárate',
   inhale: 'Inhala',
   holdIn: 'Mantén',
   exhale: 'Exhala',
@@ -22,6 +23,7 @@ const phaseLabels: Record<BreathPhase, string> = {
 
 const phaseColors: Record<BreathPhase, string> = {
   idle: 'from-muted/30 to-muted/50',
+  prepare: 'from-primary/20 to-primary/40',
   inhale: 'from-breath-inhale/40 to-breath-inhale/60',
   holdIn: 'from-breath-hold/40 to-breath-hold/60',
   exhale: 'from-breath-exhale/40 to-breath-exhale/60',
@@ -61,6 +63,9 @@ export function BreathingCircle({
     const phaseProgress = 1 - phaseTimeRemaining / phaseDuration;
     
     switch (phase) {
+      case 'prepare':
+        // Gentle pulse during preparation
+        return 1 + 0.03 * Math.sin(phaseProgress * Math.PI * 2);
       case 'inhale':
         return 1 + 0.15 * phaseProgress;
       case 'holdIn':
@@ -122,7 +127,13 @@ export function BreathingCircle({
           {phaseLabels[phase]}
         </span>
         
-        {isActive && phase !== 'complete' && (
+        {isActive && phase === 'prepare' && (
+          <span className="text-base text-foreground/70 text-center px-4 animate-pulse">
+            Encuentra una posición cómoda
+          </span>
+        )}
+        
+        {isActive && phase !== 'complete' && phase !== 'prepare' && (
           <span className="text-5xl font-light text-foreground/90">
             {phaseTimeRemaining}
           </span>

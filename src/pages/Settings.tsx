@@ -15,20 +15,21 @@ interface Voice {
   preview?: string;
 }
 
+// Native Spanish voices from ElevenLabs
 const availableVoices: Voice[] = [
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', description: 'Voz cálida y serena' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Voz suave y calmada' },
-  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', description: 'Voz clara y reconfortante' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', description: 'Voz dulce y relajante' },
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'Voz masculina tranquila' },
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', description: 'Voz masculina profunda' },
+  { id: 'UDJf7VRO3sTy4sABpNWO', name: 'Paco', description: 'Voz española clara y calmada' },
+  { id: 'szJ1F5SgxGkjGanyygoW', name: 'Ligia', description: 'Voz latinoamericana tranquila' },
+  { id: 'cMKZRsVE5V7xf6qCp9fF', name: 'Víctor', description: 'Voz chilena serena' },
+  { id: 't6OyuZ2N3Y2dqVstuTwK', name: 'Fer', description: 'Voz argentina cálida' },
+  { id: 'Nal4Voh56EtyuScXh27S', name: 'Nina', description: 'Voz española expresiva' },
+  { id: 'vAxdfYVShGAQEwKYqDZR', name: 'Miguel', description: 'Voz española versátil' },
 ];
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [selectedVoice, setSelectedVoice] = useState<string>('XrExE9yKIg1WjnnlVkGX');
+  const [selectedVoice, setSelectedVoice] = useState<string>('UDJf7VRO3sTy4sABpNWO');
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
