@@ -40,7 +40,53 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
     hasUserInteracted.current = true;
   }, []);
 
-  // Pre-generate all audio phrases sequentially to avoid rate limits
+  // Process phrases in batches for Starter plan (3 concurrent requests allowed)
+  const processBatch = async (phrases: VoicePhrase[], batchSize: number = 3) => {
+    for (let i = 0; i < phrases.length; i += batchSize) {
+      const batch = phrases.slice(i, i + batchSize);
+      
+      await Promise.all(
+        batch.map(async (phrase) => {
+          try {
+            const response = await supabase.functions.invoke('generate-breath-guide', {
+              body: { text: phrase.text, phraseKey: phrase.key },
+            });
+
+            if (response.error) {
+              console.warn(`Error generating audio for ${phrase.key}:`, response.error);
+              return;
+            }
+
+            const audioUrl = response.data?.audioUrl;
+            if (audioUrl) {
+              const audio = new Audio(audioUrl);
+              audio.preload = 'auto';
+              
+              await new Promise<void>((resolve) => {
+                audio.oncanplaythrough = () => resolve();
+                audio.onerror = () => {
+                  console.warn(`Failed to load audio: ${phrase.key}`);
+                  resolve();
+                };
+                audio.load();
+              });
+
+              audioCache.current.set(phrase.phase, audio);
+            }
+          } catch (err) {
+            console.warn(`Error processing phrase ${phrase.key}:`, err);
+          }
+        })
+      );
+      
+      // Small delay between batches
+      if (i + batchSize < phrases.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  };
+
+  // Pre-generate all audio phrases with optimized batching for Starter plan
   const preloadAudio = useCallback(async () => {
     if (!enabled || !techniqueId) return;
 
@@ -51,43 +97,7 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
     audioCache.current.clear();
 
     try {
-      // Process sequentially to avoid ElevenLabs rate limits (max 2 concurrent)
-      for (const phrase of phrases) {
-        try {
-          const response = await supabase.functions.invoke('generate-breath-guide', {
-            body: { text: phrase.text, phraseKey: phrase.key },
-          });
-
-          if (response.error) {
-            console.warn(`Error generating audio for ${phrase.key}:`, response.error);
-            continue;
-          }
-
-          const audioUrl = response.data?.audioUrl;
-          if (audioUrl) {
-            const audio = new Audio(audioUrl);
-            audio.preload = 'auto';
-            
-            // Wait for audio to be loadable
-            await new Promise<void>((resolve) => {
-              audio.oncanplaythrough = () => resolve();
-              audio.onerror = () => {
-                console.warn(`Failed to load audio: ${phrase.key}`);
-                resolve();
-              };
-              audio.load();
-            });
-
-            audioCache.current.set(phrase.phase, audio);
-          }
-        } catch (err) {
-          console.warn(`Error processing phrase ${phrase.key}:`, err);
-        }
-        
-        // Small delay between requests to be safe
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-
+      await processBatch(phrases, 3); // Starter plan allows 3 concurrent
       setIsReady(audioCache.current.size > 0);
     } catch (err) {
       console.error('Error preloading audio:', err);
