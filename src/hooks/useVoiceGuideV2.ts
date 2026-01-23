@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AudioTimestamps } from '@/types/breathing';
 
@@ -27,6 +27,26 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasUserInteracted = useRef(false);
+  const prevVoiceIdRef = useRef(voiceId);
+
+  // Reset state when voiceId changes to force reload
+  useEffect(() => {
+    if (prevVoiceIdRef.current !== voiceId) {
+      prevVoiceIdRef.current = voiceId;
+      
+      // Stop current audio if exists
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
+      // Reset states to trigger reload
+      setIsReady(false);
+      setAudioElement(null);
+      setTimestamps(null);
+    }
+  }, [voiceId]);
+
   const markUserInteraction = useCallback(() => {
     hasUserInteracted.current = true;
   }, []);

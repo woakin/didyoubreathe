@@ -136,12 +136,12 @@ export default function BreatheV2() {
   const isAudioDriven = voiceEnabled && voiceGuide.isReady;
   const sessionState = isAudioDriven ? audioDrivenSession.state : timerSession.state;
 
-  // Preload audio when component mounts
+  // Preload audio when component mounts or voice changes
   useEffect(() => {
     if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading) {
       voiceGuide.preloadAudio();
     }
-  }, [voiceEnabled, techniqueId]);
+  }, [voiceEnabled, techniqueId, selectedVoice, voiceGuide.isReady, voiceGuide.isLoading]);
 
   // Stop voice when navigating away
   useEffect(() => {
