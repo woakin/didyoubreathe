@@ -2,11 +2,13 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Play, SkipForward } from 'lucide-react';
+import { useLanguage } from '@/i18n';
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { t } = useLanguage();
 
   const handlePlay = () => {
     if (videoRef.current) {
@@ -28,10 +30,10 @@ export default function Onboarding() {
       {/* Logo / Título */}
       <header className="text-center space-y-2">
         <h1 className="text-2xl font-light tracking-wide text-foreground/90">
-          Did You Breathe?
+          {t.onboarding.title}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Respira conscientemente, vive plenamente
+          {t.onboarding.subtitle}
         </p>
       </header>
 
@@ -62,7 +64,7 @@ export default function Onboarding() {
                 <Play className="w-9 h-9 text-primary-foreground fill-primary-foreground ml-1" />
               </div>
               <p className="mt-5 text-primary-foreground font-medium text-sm bg-primary/90 px-4 py-2 rounded-full">
-                Toca para comenzar
+                {t.onboarding.tapToStart}
               </p>
             </div>
           )}
@@ -78,7 +80,7 @@ export default function Onboarding() {
             onClick={handleSkip} 
             className="w-full h-14 text-base font-medium rounded-xl"
           >
-            Continuar a la App
+            {t.onboarding.continueToApp}
           </Button>
         )}
         
@@ -86,7 +88,7 @@ export default function Onboarding() {
           onClick={handleSkip}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 py-2"
         >
-          Saltar introducción 
+          {t.onboarding.skipIntro}
           <SkipForward className="w-4 h-4" />
         </button>
       </footer>

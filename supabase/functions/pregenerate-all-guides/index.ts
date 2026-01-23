@@ -9,14 +9,20 @@ const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Voces optimizadas para meditación
-const ALL_VOICES = [
-  { id: "spPXlKT5a4JMfbhPRAzA", name: "Camila" },
-  { id: "rixsIpPlTphvsJd2mI03", name: "Isabel" },
-];
+// Voices organized by language
+const VOICES_BY_LANG = {
+  es: [
+    { id: "spPXlKT5a4JMfbhPRAzA", name: "Camila" },
+    { id: "rixsIpPlTphvsJd2mI03", name: "Isabel" },
+  ],
+  en: [
+    { id: "FGY2WhTYpPnrIDTdsKH5", name: "Laura" },
+    { id: "SAz9YHcvj6GT2YYXdXww", name: "River" },
+  ],
+};
 
-// All breathing scripts with precise SSML break tags for 1-second pauses
-const breathingScripts = {
+// Spanish breathing scripts with SSML
+const breathingScriptsES = {
   diaphragmatic: {
     script: `Bienvenido a la respiración diafragmática.
 Encuentra una posición cómoda. Coloca una mano sobre tu abdomen.
@@ -159,6 +165,156 @@ Pausa final <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s
   },
 };
 
+// English breathing scripts with SSML
+const breathingScriptsEN = {
+  diaphragmatic: {
+    script: `Welcome to diaphragmatic breathing.
+Find a comfortable position. Place one hand on your abdomen.
+Let's begin.
+
+Inhale deeply <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale slowly <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.
+
+Inhale deeply <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale completely <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six.`,
+  },
+  "box-breathing": {
+    script: `Welcome to Box Breathing.
+This technique will help you find focus and clarity.
+Prepare to begin.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold your breath <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale deeply <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale completely <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Final pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.`,
+  },
+  "4-7-8": {
+    script: `Welcome to the four, seven, eight technique.
+This practice will prepare you for deep rest.
+Relax your shoulders and close your eyes.
+
+Inhale through your nose <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold your breath <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven.
+Exhale through your mouth <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven <break time="1.0s"/> eight.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven.
+Exhale slowly <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven <break time="1.0s"/> eight.
+
+Inhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven.
+Exhale <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven <break time="1.0s"/> eight.
+
+Inhale deeply <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven.
+Exhale completely <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four <break time="1.0s"/> five <break time="1.0s"/> six <break time="1.0s"/> seven <break time="1.0s"/> eight.`,
+  },
+  "nadi-shodhana": {
+    script: `Welcome to Nadi Shodhana, alternate nostril breathing.
+Use your right thumb to close your right nostril.
+Let's balance your energy.
+
+Inhale through the left nostril <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Close both nostrils and hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+
+Inhale through the right <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Hold <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Exhale through the left <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.
+Final pause <break time="1.0s"/> two <break time="1.0s"/> three <break time="1.0s"/> four.`,
+  },
+};
+
+// Combined scripts by language
+const SCRIPTS_BY_LANG = {
+  es: breathingScriptsES,
+  en: breathingScriptsEN,
+};
+
 async function generateAudio(text: string, voiceId: string): Promise<ArrayBuffer> {
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
@@ -200,14 +356,14 @@ Deno.serve(async (req) => {
       throw new Error("ELEVENLABS_API_KEY not configured");
     }
 
-    // Parse request body for optional voiceIds filter and force flag
-    let voicesToGenerate = ALL_VOICES;
+    // Parse request body for options
+    let languages: ("es" | "en")[] = ["es", "en"];
     let forceRegenerate = false;
     
     try {
       const body = await req.json();
-      if (body.voiceIds && Array.isArray(body.voiceIds)) {
-        voicesToGenerate = ALL_VOICES.filter(v => body.voiceIds.includes(v.id));
+      if (body.languages && Array.isArray(body.languages)) {
+        languages = body.languages.filter((l: string) => l === "es" || l === "en");
       }
       if (body.force === true) {
         forceRegenerate = true;
@@ -218,68 +374,76 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const results: Record<string, Record<string, { success: boolean; error?: string; url?: string }>> = {};
+    const results: Record<string, Record<string, Record<string, { success: boolean; error?: string; url?: string }>>> = {};
 
-    // Process each voice
-    for (const voice of voicesToGenerate) {
-      results[voice.name] = {};
+    // Process each language
+    for (const lang of languages) {
+      results[lang] = {};
+      const voices = VOICES_BY_LANG[lang];
+      const scripts = SCRIPTS_BY_LANG[lang];
 
-      // Process each technique for this voice
-      for (const [techniqueId, { script }] of Object.entries(breathingScripts)) {
-        const fileName = `${techniqueId.replace(/-/g, "_")}_${voice.id}_full.mp3`;
+      // Process each voice for this language
+      for (const voice of voices) {
+        results[lang][voice.name] = {};
 
-        try {
-          // Check if file already exists (skip if not forcing)
-          if (!forceRegenerate) {
-            const { data: existingFile } = await supabase.storage
-              .from("audio-guides")
-              .list("", { search: fileName });
+        // Process each technique for this voice
+        for (const [techniqueId, { script }] of Object.entries(scripts)) {
+          // File naming: technique_voiceId_lang_full.mp3
+          const fileName = `${techniqueId.replace(/-/g, "_")}_${voice.id}_${lang}_full.mp3`;
 
-            if (existingFile && existingFile.length > 0) {
-              const { data: urlData } = supabase.storage
+          try {
+            // Check if file already exists (skip if not forcing)
+            if (!forceRegenerate) {
+              const { data: existingFile } = await supabase.storage
                 .from("audio-guides")
-                .getPublicUrl(fileName);
+                .list("", { search: fileName });
 
-              results[voice.name][techniqueId] = {
-                success: true,
-                url: urlData.publicUrl,
-              };
-              console.log(`[${voice.name}/${techniqueId}] Already exists, skipping`);
-              continue;
+              if (existingFile && existingFile.length > 0) {
+                const { data: urlData } = supabase.storage
+                  .from("audio-guides")
+                  .getPublicUrl(fileName);
+
+                results[lang][voice.name][techniqueId] = {
+                  success: true,
+                  url: urlData.publicUrl,
+                };
+                console.log(`[${lang}/${voice.name}/${techniqueId}] Already exists, skipping`);
+                continue;
+              }
             }
+
+            // Generate audio
+            console.log(`[${lang}/${voice.name}/${techniqueId}] Generating audio...`);
+            const audioBuffer = await generateAudio(script, voice.id);
+
+            // Upload to storage
+            const { error: uploadError } = await supabase.storage
+              .from("audio-guides")
+              .upload(fileName, audioBuffer, {
+                contentType: "audio/mpeg",
+                upsert: true,
+              });
+
+            if (uploadError) {
+              throw new Error(`Upload failed: ${uploadError.message}`);
+            }
+
+            const { data: urlData } = supabase.storage
+              .from("audio-guides")
+              .getPublicUrl(fileName);
+
+            results[lang][voice.name][techniqueId] = {
+              success: true,
+              url: urlData.publicUrl,
+            };
+            console.log(`[${lang}/${voice.name}/${techniqueId}] Generated and uploaded successfully`);
+          } catch (error) {
+            console.error(`[${lang}/${voice.name}/${techniqueId}] Error:`, error);
+            results[lang][voice.name][techniqueId] = {
+              success: false,
+              error: error instanceof Error ? error.message : "Unknown error",
+            };
           }
-
-          // Generate audio
-          console.log(`[${voice.name}/${techniqueId}] Generating audio with precise timing...`);
-          const audioBuffer = await generateAudio(script, voice.id);
-
-          // Upload to storage (upsert to overwrite existing)
-          const { error: uploadError } = await supabase.storage
-            .from("audio-guides")
-            .upload(fileName, audioBuffer, {
-              contentType: "audio/mpeg",
-              upsert: true,
-            });
-
-          if (uploadError) {
-            throw new Error(`Upload failed: ${uploadError.message}`);
-          }
-
-          const { data: urlData } = supabase.storage
-            .from("audio-guides")
-            .getPublicUrl(fileName);
-
-          results[voice.name][techniqueId] = {
-            success: true,
-            url: urlData.publicUrl,
-          };
-          console.log(`[${voice.name}/${techniqueId}] Generated and uploaded successfully`);
-        } catch (error) {
-          console.error(`[${voice.name}/${techniqueId}] Error:`, error);
-          results[voice.name][techniqueId] = {
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
         }
       }
     }
@@ -288,7 +452,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         message: "Pre-generation complete",
         forceRegenerate,
-        voices: voicesToGenerate.map(v => v.name),
+        languages,
         results,
       }),
       {

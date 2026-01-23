@@ -3,13 +3,17 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { TechniqueCard } from '@/components/TechniqueCard';
 import { Button } from '@/components/ui/button';
-import { breathingTechniques } from '@/data/techniques';
+import { getBreathingTechniques } from '@/data/techniques';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/i18n';
 import { User, LogOut, Flame } from 'lucide-react';
 
 export default function Techniques() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { language, t } = useLanguage();
+
+  const techniques = getBreathingTechniques(language);
 
   const handleTechniqueSelect = (techniqueId: string) => {
     navigate(`/breathe/${techniqueId}`);
@@ -22,10 +26,10 @@ export default function Techniques() {
         <header className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">
-              Elige tu práctica
+              {t.techniques.title}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Selecciona una técnica para comenzar
+              {t.techniques.subtitle}
             </p>
           </div>
           
@@ -55,7 +59,7 @@ export default function Techniques() {
                 onClick={() => navigate('/auth')}
               >
                 <User className="h-4 w-4 mr-2" />
-                Iniciar sesión
+                {t.common.signIn}
               </Button>
             )}
           </div>
@@ -63,7 +67,7 @@ export default function Techniques() {
 
         {/* Techniques Grid */}
         <div className="grid gap-4 sm:grid-cols-2">
-          {breathingTechniques.map((technique, index) => (
+          {techniques.map((technique, index) => (
             <TechniqueCard
               key={technique.id}
               technique={technique}
