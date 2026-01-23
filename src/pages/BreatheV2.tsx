@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
-import { BreathingCircle } from '@/components/BreathingCircle';
+import { BreathingBlob } from '@/components/BreathingBlob';
+import { DynamicMeshBackground } from '@/components/DynamicMeshBackground';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getTechniqueById } from '@/data/techniques';
@@ -10,6 +11,7 @@ import { getVoicesForLanguage, getDefaultVoiceForLanguage } from '@/data/voicesB
 import { useVoiceGuideV2 } from '@/hooks/useVoiceGuideV2';
 import { useAudioDrivenSession } from '@/hooks/useAudioDrivenSession';
 import { useBreathingSession } from '@/hooks/useBreathingSession';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +26,7 @@ export default function BreatheV2() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { language, t } = useLanguage();
+  const lastPhaseRef = useRef<string>('idle');
   
   const availableVoices = getVoicesForLanguage(language);
   const defaultVoice = getDefaultVoiceForLanguage(language);
@@ -39,6 +42,9 @@ export default function BreatheV2() {
     }
     return defaultVoice;
   });
+
+  // Haptic feedback hook
+  const haptics = useHapticFeedback({ enabled: true });
 
   // Update voice when language changes
   useEffect(() => {
@@ -148,9 +154,17 @@ export default function BreatheV2() {
   });
 
   // Determine which session to use
-  // Use audio-driven mode only if voice is ready AND we have timestamps (not in timer fallback mode)
   const isAudioDriven = voiceEnabled && voiceGuide.isReady && !voiceGuide.useTimerMode;
   const sessionState = isAudioDriven ? audioDrivenSession.state : timerSession.state;
+
+  // Trigger haptic feedback on phase changes
+  useEffect(() => {
+    const currentPhase = sessionState.currentPhase;
+    if (currentPhase !== lastPhaseRef.current) {
+      haptics.onPhaseChange(currentPhase);
+      lastPhaseRef.current = currentPhase;
+    }
+  }, [sessionState.currentPhase, haptics]);
 
   // Preload audio when component mounts or voice changes
   useEffect(() => {
@@ -163,10 +177,12 @@ export default function BreatheV2() {
   useEffect(() => {
     return () => {
       voiceGuide.stop();
+      haptics.stop();
     };
   }, []);
 
   const handleStart = useCallback(async () => {
+    haptics.triggerButtonPress();
     voiceGuide.markUserInteraction();
 
     if (voiceEnabled) {
@@ -176,18 +192,14 @@ export default function BreatheV2() {
         toast.dismiss('voice-loading');
 
         if (loaded) {
-          // Check if we have timestamps for audio-driven mode
           if (voiceGuide.useTimerMode) {
-            // Audio loaded but no timestamps - play audio with timer-based visuals
             toast.info('Usando modo visual con audio');
             voiceGuide.play();
             timerSession.start();
           } else {
-            // Full audio-driven mode with timestamps
             voiceGuide.play();
           }
         } else {
-          // Audio not available - fallback to timer-only mode
           if (voiceGuide.error) {
             toast.warning(voiceGuide.error);
           }
@@ -204,29 +216,32 @@ export default function BreatheV2() {
     } else {
       timerSession.start();
     }
-  }, [voiceGuide, voiceEnabled, timerSession, t]);
+  }, [voiceGuide, voiceEnabled, timerSession, t, haptics]);
 
   const handlePause = useCallback(() => {
+    haptics.triggerButtonPress();
     if (isAudioDriven) {
       voiceGuide.pause();
     } else {
       timerSession.pause();
     }
-  }, [isAudioDriven, voiceGuide, timerSession]);
+  }, [isAudioDriven, voiceGuide, timerSession, haptics]);
 
   const handleResume = useCallback(() => {
+    haptics.triggerButtonPress();
     if (isAudioDriven) {
       voiceGuide.resume();
     } else {
       timerSession.resume();
     }
-  }, [isAudioDriven, voiceGuide, timerSession]);
+  }, [isAudioDriven, voiceGuide, timerSession, haptics]);
 
   const handleStop = useCallback(() => {
+    haptics.triggerButtonPress();
     voiceGuide.stop();
     timerSession.stop();
     audioDrivenSession.reset();
-  }, [voiceGuide, timerSession, audioDrivenSession]);
+  }, [voiceGuide, timerSession, audioDrivenSession, haptics]);
 
   if (!technique) {
     return (
@@ -263,185 +278,196 @@ export default function BreatheV2() {
   const currentPhase = sessionState.currentPhase;
 
   return (
-    <MainLayout>
-      <PageTransition className="flex flex-col min-h-screen px-6 py-8">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-6 animate-fade-in">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/techniques')}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          
-          <div className="text-center">
-            <h1 className="font-semibold text-foreground">{technique.name}</h1>
-            <p className="text-xs text-muted-foreground">
-              {currentPhase === 'prepare' 
-                ? t.breathe.preparation
-                : isAudioDriven 
-                  ? t.breathe.followVoice
-                  : t.breathe.cycleOf
-                      .replace('{current}', String(timerSession.state.currentCycle))
-                      .replace('{total}', String(timerSession.state.totalCycles))}
-            </p>
-          </div>
-          
-          <div className="w-10" />
-        </header>
-
-        {/* Main breathing area */}
-        <div className="flex-1 flex flex-col items-center justify-center -mt-12">
-          {isAudioDriven ? (
-            <BreathingCircle
-              phase={audioDrivenSession.state.currentPhase}
-              phaseProgress={audioDrivenSession.state.progress}
-              totalProgress={audioDrivenSession.state.totalProgress}
-              isActive={audioDrivenSession.state.isActive}
-              currentCount={audioDrivenSession.state.currentCount}
-            />
-          ) : (
-            <BreathingCircle
-              phase={timerSession.state.currentPhase}
-              phaseTimeRemaining={timerSession.state.phaseTimeRemaining}
-              phaseDuration={getPhaseDuration(timerSession.state.currentPhase)}
-              totalTimeRemaining={timerSession.state.totalTimeRemaining}
-              totalDuration={(technique.pattern.inhale + technique.pattern.holdIn + technique.pattern.exhale + technique.pattern.holdOut) * technique.pattern.cycles}
-              isActive={timerSession.state.isActive}
-            />
-          )}
-
-          {/* Pattern display */}
-          {!isActive && (
-            <div className="mt-8 text-center animate-fade-in">
-              <p className="text-sm text-muted-foreground mb-2">{t.breathe.pattern}</p>
-              <div className="flex items-center gap-2 text-foreground font-medium">
-                <span className="text-breath-inhale">{technique.pattern.inhale}s {t.breathe.inhale}</span>
-                {technique.pattern.holdIn > 0 && (
-                  <span className="text-breath-hold">• {technique.pattern.holdIn}s {t.breathe.hold}</span>
-                )}
-                <span className="text-breath-exhale">• {technique.pattern.exhale}s {t.breathe.exhale}</span>
-                {technique.pattern.holdOut > 0 && (
-                  <span className="text-muted-foreground">• {technique.pattern.holdOut}s {t.breathe.pause}</span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-col items-center gap-4 py-8 animate-fade-in">
-          {/* Voice toggle + selector */}
-          <div className="flex items-center gap-1">
+    <>
+      {/* Dynamic mesh gradient background */}
+      <DynamicMeshBackground phase={currentPhase} isActive={isActive} />
+      
+      <MainLayout className="bg-transparent">
+        <PageTransition className="flex flex-col min-h-screen px-6 py-8">
+          {/* Header with glassmorphism */}
+          <header className="flex items-center justify-between mb-6 animate-fade-in">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setVoiceEnabled(!voiceEnabled)}
-              disabled={isActive}
-              className={cn(
-                "h-9 w-9",
-                voiceEnabled ? "text-primary" : "text-muted-foreground"
-              )}
+              onClick={() => navigate('/techniques')}
+              className="bg-background/50 backdrop-blur-sm"
             >
-              {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              <ArrowLeft className="h-5 w-5" />
             </Button>
             
-            <Select
-              value={selectedVoice}
-              onValueChange={handleVoiceChange}
-              disabled={isActive}
-            >
-              <SelectTrigger 
-                className={cn(
-                  "w-24 h-9 border-none bg-transparent text-sm focus:ring-0 focus:ring-offset-0",
-                  !voiceEnabled && "opacity-50"
-                )}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableVoices.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id}>
-                    {voice.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="text-center px-4 py-2 rounded-full bg-background/50 backdrop-blur-sm">
+              <h1 className="font-semibold text-foreground">{technique.name}</h1>
+              <p className="text-xs text-muted-foreground">
+                {currentPhase === 'prepare' 
+                  ? t.breathe.preparation
+                  : isAudioDriven 
+                    ? t.breathe.followVoice
+                    : t.breathe.cycleOf
+                        .replace('{current}', String(timerSession.state.currentCycle))
+                        .replace('{total}', String(timerSession.state.totalCycles))}
+              </p>
+            </div>
+            
+            <div className="w-10" />
+          </header>
+
+          {/* Main breathing area */}
+          <div className="flex-1 flex flex-col items-center justify-center -mt-12">
+            {isAudioDriven ? (
+              <BreathingBlob
+                phase={audioDrivenSession.state.currentPhase}
+                phaseProgress={audioDrivenSession.state.progress}
+                totalProgress={audioDrivenSession.state.totalProgress}
+                isActive={audioDrivenSession.state.isActive}
+                currentCount={audioDrivenSession.state.currentCount}
+              />
+            ) : (
+              <BreathingBlob
+                phase={timerSession.state.currentPhase}
+                phaseTimeRemaining={timerSession.state.phaseTimeRemaining}
+                phaseDuration={getPhaseDuration(timerSession.state.currentPhase)}
+                totalProgress={
+                  timerSession.state.totalTimeRemaining !== undefined
+                    ? 1 - timerSession.state.totalTimeRemaining / 
+                      ((technique.pattern.inhale + technique.pattern.holdIn + 
+                        technique.pattern.exhale + technique.pattern.holdOut) * technique.pattern.cycles)
+                    : 0
+                }
+                isActive={timerSession.state.isActive}
+              />
+            )}
+
+            {/* Pattern display with glassmorphism */}
+            {!isActive && (
+              <div className="mt-8 text-center animate-fade-in px-6 py-4 rounded-2xl bg-background/60 backdrop-blur-sm">
+                <p className="text-sm text-muted-foreground mb-2">{t.breathe.pattern}</p>
+                <div className="flex items-center gap-2 text-foreground font-medium">
+                  <span className="text-breath-inhale">{technique.pattern.inhale}s {t.breathe.inhale}</span>
+                  {technique.pattern.holdIn > 0 && (
+                    <span className="text-breath-hold">• {technique.pattern.holdIn}s {t.breathe.hold}</span>
+                  )}
+                  <span className="text-breath-exhale">• {technique.pattern.exhale}s {t.breathe.exhale}</span>
+                  {technique.pattern.holdOut > 0 && (
+                    <span className="text-muted-foreground">• {technique.pattern.holdOut}s {t.breathe.pause}</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center justify-center gap-4">
-            {!isActive ? (
+          {/* Controls with glassmorphism */}
+          <div className="flex flex-col items-center gap-4 py-8 animate-fade-in">
+            {/* Voice toggle + selector */}
+            <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm">
               <Button
-                size="lg"
-                onClick={handleStart}
-                disabled={voiceGuide.isLoading}
-                className="w-40 h-14 text-lg"
-              >
-                {voiceGuide.isLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    {t.common.loading}
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5 mr-2" />
-                    {t.breathe.start}
-                  </>
+                variant="ghost"
+                size="icon"
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                disabled={isActive}
+                className={cn(
+                  "h-9 w-9",
+                  voiceEnabled ? "text-primary" : "text-muted-foreground"
                 )}
+              >
+                {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </Button>
-            ) : currentPhase === 'complete' ? (
-              <>
+              
+              <Select
+                value={selectedVoice}
+                onValueChange={handleVoiceChange}
+                disabled={isActive}
+              >
+                <SelectTrigger 
+                  className={cn(
+                    "w-24 h-9 border-none bg-transparent text-sm focus:ring-0 focus:ring-offset-0",
+                    !voiceEnabled && "opacity-50"
+                  )}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableVoices.map((voice) => (
+                    <SelectItem key={voice.id} value={voice.id}>
+                      {voice.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-center gap-4">
+              {!isActive ? (
                 <Button
-                  variant="outline"
                   size="lg"
                   onClick={handleStart}
-                  className="h-14"
+                  disabled={voiceGuide.isLoading}
+                  className="w-40 h-14 text-lg shadow-lg"
                 >
-                  <RotateCcw className="h-5 w-5 mr-2" />
-                  {t.breathe.repeat}
-                </Button>
-                <Button
-                  size="lg"
-                  onClick={() => navigate('/techniques')}
-                  className="h-14"
-                >
-                  {t.common.continue}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleStop}
-                  className="h-14 w-14"
-                >
-                  <Square className="h-5 w-5" />
-                </Button>
-                
-                <Button
-                  size="lg"
-                  onClick={isPaused ? handleResume : handlePause}
-                  className="w-40 h-14 text-lg"
-                >
-                  {isPaused ? (
+                  {voiceGuide.isLoading ? (
                     <>
-                      <Play className="h-5 w-5 mr-2" />
-                      {t.breathe.resume}
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      {t.common.loading}
                     </>
                   ) : (
                     <>
-                      <Pause className="h-5 w-5 mr-2" />
-                      {t.breathe.pauseBtn}
+                      <Play className="h-5 w-5 mr-2" />
+                      {t.breathe.start}
                     </>
                   )}
                 </Button>
-              </>
-            )}
+              ) : currentPhase === 'complete' ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleStart}
+                    className="h-14 bg-background/80 backdrop-blur-sm"
+                  >
+                    <RotateCcw className="h-5 w-5 mr-2" />
+                    {t.breathe.repeat}
+                  </Button>
+                  <Button
+                    size="lg"
+                    onClick={() => navigate('/techniques')}
+                    className="h-14 shadow-lg"
+                  >
+                    {t.common.continue}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleStop}
+                    className="h-14 w-14 bg-background/80 backdrop-blur-sm"
+                  >
+                    <Square className="h-5 w-5" />
+                  </Button>
+                  
+                  <Button
+                    size="lg"
+                    onClick={isPaused ? handleResume : handlePause}
+                    className="w-40 h-14 text-lg shadow-lg"
+                  >
+                    {isPaused ? (
+                      <>
+                        <Play className="h-5 w-5 mr-2" />
+                        {t.breathe.resume}
+                      </>
+                    ) : (
+                      <>
+                        <Pause className="h-5 w-5 mr-2" />
+                        {t.breathe.pauseBtn}
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </PageTransition>
-    </MainLayout>
+        </PageTransition>
+      </MainLayout>
+    </>
   );
 }
