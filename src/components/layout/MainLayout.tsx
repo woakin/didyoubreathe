@@ -5,15 +5,25 @@ interface MainLayoutProps {
   children: ReactNode;
   className?: string;
   showBackground?: boolean;
+  withBottomNav?: boolean;
 }
 
-export function MainLayout({ children, className, showBackground = true }: MainLayoutProps) {
+export function MainLayout({ 
+  children, 
+  className, 
+  showBackground = true,
+  withBottomNav = true 
+}: MainLayoutProps) {
   // Check if className contains bg-transparent to disable default background
   const hasTransparentBg = className?.includes('bg-transparent');
   const shouldShowBackground = showBackground && !hasTransparentBg;
   
   return (
-    <div className={cn('relative min-h-screen', className)}>
+    <div className={cn(
+      'relative min-h-screen',
+      withBottomNav && 'pb-20',
+      className
+    )}>
       {/* Subtle background pattern */}
       {shouldShowBackground && (
         <div className="fixed inset-0 -z-10 overflow-hidden">

@@ -339,7 +339,7 @@ export default function BreatheV2() {
 
   if (!technique) {
     return (
-      <MainLayout>
+      <MainLayout withBottomNav={false}>
         <PageTransition className="flex items-center justify-center">
           <div className="text-center">
             <p className="text-muted-foreground">{t.breathe.techniqueNotFound}</p>
@@ -378,7 +378,7 @@ export default function BreatheV2() {
       {/* Dynamic mesh gradient background */}
       <DynamicMeshBackground phase={currentPhase} isActive={isActive} />
       
-      <MainLayout className="bg-transparent">
+      <MainLayout className="bg-transparent" withBottomNav={false}>
         <PageTransition className="flex flex-col min-h-screen px-6 py-8">
           {/* Zen Mode toggle - always visible during active session */}
           {isActive && !isPaused && currentPhase !== 'complete' && (

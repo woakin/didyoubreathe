@@ -56,7 +56,7 @@ export default function Auth() {
   };
 
   return (
-    <MainLayout>
+    <MainLayout withBottomNav={false}>
       <PageTransition className="flex flex-col items-center justify-center min-h-screen px-6 py-12">
         <Button
           variant="ghost"
