@@ -35,6 +35,8 @@ export const en: Translations = {
     },
     cycles: 'cycles',
     minutes: 'min',
+    startPractice: 'Start practice',
+    tapToLearnMore: 'Tap to learn more',
   },
   progress: {
     title: 'Your progress',

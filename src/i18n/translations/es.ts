@@ -33,6 +33,8 @@ export const es = {
     },
     cycles: 'ciclos',
     minutes: 'min',
+    startPractice: 'Comenzar práctica',
+    tapToLearnMore: 'Toca para saber más',
   },
   progress: {
     title: 'Tu progreso',

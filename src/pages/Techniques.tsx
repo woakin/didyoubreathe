@@ -98,17 +98,23 @@ export default function Techniques() {
           </div>
         </header>
 
-        {/* Techniques Grid */}
-        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
-          {sortedTechniques.map((technique, index) => (
-            <TechniqueCard
-              key={technique.id}
-              technique={technique}
-              onClick={() => handleTechniqueSelect(technique.id)}
-              index={index}
-              isRecommended={technique.id === recommendedTechnique}
-            />
-          ))}
+        {/* Techniques Bento Grid */}
+        <div className="grid gap-4 sm:grid-cols-2 auto-rows-[minmax(200px,auto)]">
+          {sortedTechniques.map((technique, index) => {
+            // First card or recommended gets featured treatment
+            const isFeatured = index === 0 || technique.id === recommendedTechnique;
+            
+            return (
+              <TechniqueCard
+                key={technique.id}
+                technique={technique}
+                onClick={() => handleTechniqueSelect(technique.id)}
+                index={index}
+                isRecommended={technique.id === recommendedTechnique}
+                isFeatured={isFeatured}
+              />
+            );
+          })}
         </div>
       </PageTransition>
     </MainLayout>
