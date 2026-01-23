@@ -34,33 +34,47 @@ export function useAudioDrivenSession({
 
   const animationFrameRef = useRef<number | null>(null);
   const lastPhaseRef = useRef<BreathPhase>('idle');
+  const timestampsRef = useRef(timestamps);
+  const audioElementRef = useRef(audioElement);
+
+  // Keep refs in sync with props to avoid stale closures
+  useEffect(() => {
+    timestampsRef.current = timestamps;
+  }, [timestamps]);
+
+  useEffect(() => {
+    audioElementRef.current = audioElement;
+  }, [audioElement]);
 
   // Find current cue based on audio time
-  const findCurrentCue = useCallback((currentTime: number): AudioCue | null => {
-    if (!timestamps?.cues.length) return null;
+  const findCurrentCue = useCallback((currentTime: number, cues: AudioCue[]): AudioCue | null => {
+    if (!cues.length) return null;
 
     // Find the last cue that has started
-    for (let i = timestamps.cues.length - 1; i >= 0; i--) {
-      if (currentTime >= timestamps.cues[i].time) {
-        return timestamps.cues[i];
+    for (let i = cues.length - 1; i >= 0; i--) {
+      if (currentTime >= cues[i].time) {
+        return cues[i];
       }
     }
     return null;
-  }, [timestamps]);
+  }, []);
 
   // Find next cue
-  const findNextCue = useCallback((currentTime: number): AudioCue | null => {
-    if (!timestamps?.cues.length) return null;
+  const findNextCue = useCallback((currentTime: number, cues: AudioCue[]): AudioCue | null => {
+    if (!cues.length) return null;
 
-    return timestamps.cues.find(cue => cue.time > currentTime) || null;
-  }, [timestamps]);
+    return cues.find(cue => cue.time > currentTime) || null;
+  }, []);
 
-  // Update state based on audio time
+  // Update state based on audio time - uses refs to avoid stale closures
   const updateFromAudioTime = useCallback(() => {
-    if (!audioElement || !timestamps || !enabled) return;
+    const audio = audioElementRef.current;
+    const ts = timestampsRef.current;
+    
+    if (!audio || !ts || !enabled) return;
 
-    const currentTime = audioElement.currentTime;
-    const totalDuration = timestamps.totalDuration;
+    const currentTime = audio.currentTime;
+    const totalDuration = ts.totalDuration;
 
     // Check if complete
     if (currentTime >= totalDuration - 0.1) {
@@ -75,8 +89,8 @@ export function useAudioDrivenSession({
       return;
     }
 
-    const currentCue = findCurrentCue(currentTime);
-    const nextCue = findNextCue(currentTime);
+    const currentCue = findCurrentCue(currentTime, ts.cues);
+    const nextCue = findNextCue(currentTime, ts.cues);
 
     if (currentCue) {
       const phase = currentCue.phase || 'prepare';
@@ -102,7 +116,7 @@ export function useAudioDrivenSession({
 
     // Continue animation loop
     animationFrameRef.current = requestAnimationFrame(updateFromAudioTime);
-  }, [audioElement, timestamps, enabled, findCurrentCue, findNextCue, onComplete]);
+  }, [enabled, findCurrentCue, findNextCue, onComplete]);
 
   // Start animation loop when audio plays
   useEffect(() => {

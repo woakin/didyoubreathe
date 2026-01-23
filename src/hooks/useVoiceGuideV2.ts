@@ -22,10 +22,10 @@ export function useVoiceGuideV2({ techniqueId, enabled }: UseVoiceGuideV2Props) 
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timestamps, setTimestamps] = useState<AudioTimestamps | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasUserInteracted = useRef(false);
-
   const markUserInteraction = useCallback(() => {
     hasUserInteracted.current = true;
   }, []);
@@ -64,6 +64,7 @@ export function useVoiceGuideV2({ techniqueId, enabled }: UseVoiceGuideV2Props) 
         });
 
         audioRef.current = audio;
+        setAudioElement(audio); // State update triggers re-render for consumers
         setTimestamps(timestampsData);
         setIsReady(true);
         return true;
@@ -114,7 +115,7 @@ export function useVoiceGuideV2({ techniqueId, enabled }: UseVoiceGuideV2Props) 
     isReady,
     error,
     timestamps,
-    audioElement: audioRef.current,
+    audioElement,
     preloadAudio,
     play,
     pause,
