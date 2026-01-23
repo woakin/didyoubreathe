@@ -9,14 +9,10 @@ const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// All native Spanish voices
+// Voces optimizadas para meditación
 const ALL_VOICES = [
-  { id: "UDJf7VRO3sTy4sABpNWO", name: "Paco" },
-  { id: "szJ1F5SgxGkjGanyygoW", name: "Ligia" },
-  { id: "cMKZRsVE5V7xf6qCp9fF", name: "Víctor" },
-  { id: "t6OyuZ2N3Y2dqVstuTwK", name: "Fer" },
-  { id: "Nal4Voh56EtyuScXh27S", name: "Nina" },
-  { id: "vAxdfYVShGAQEwKYqDZR", name: "Miguel" },
+  { id: "spPXlKT5a4JMfbhPRAzA", name: "Camila" },
+  { id: "rixsIpPlTphvsJd2mI03", name: "Isabel" },
 ];
 
 // All breathing scripts with their content
