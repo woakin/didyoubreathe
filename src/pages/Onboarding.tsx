@@ -72,15 +72,7 @@ export default function Onboarding() {
 
       {/* CTAs */}
       <footer className="w-full max-w-sm flex flex-col items-center gap-4">
-        {!isPlaying ? (
-          <Button 
-            onClick={handlePlay} 
-            className="w-full h-14 text-base font-medium rounded-xl shadow-md hover:shadow-lg transition-shadow"
-          >
-            <Play className="w-5 h-5 mr-2 fill-current" />
-            Empezar ahora
-          </Button>
-        ) : (
+        {isPlaying && (
           <Button 
             variant="secondary" 
             onClick={handleSkip} 
