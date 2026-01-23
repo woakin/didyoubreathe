@@ -25,11 +25,11 @@ export default function Techniques() {
 
   return (
     <MainLayout>
-      <PageTransition className="px-6 py-8 pb-24">
+      <PageTransition className="px-4 sm:px-6 py-6 sm:py-8 pb-24">
         {/* Header */}
-        <header className="flex items-center justify-between mb-8 animate-fade-in">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
               {t.techniques.title}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -81,7 +81,7 @@ export default function Techniques() {
         </header>
 
         {/* Techniques Grid */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
           {techniques.map((technique, index) => (
             <TechniqueCard
               key={technique.id}
