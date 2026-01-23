@@ -8,7 +8,7 @@ interface UseVoiceGuideProps {
 }
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
-const DEFAULT_VOICE_ID = 'UDJf7VRO3sTy4sABpNWO'; // Paco - native Spanish voice
+const DEFAULT_VOICE_ID = 'szJ1F5SgxGanyygoW'; // Ligia - native Spanish voice
 
 // Get user's preferred voice from localStorage
 const getSelectedVoice = (): string => {
@@ -38,13 +38,13 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
   }, [techniqueId]);
 
   // Pre-generate or fetch the full audio guide
-  const preloadAudio = useCallback(async () => {
-    if (!enabled || !techniqueId) return;
+  const preloadAudio = useCallback(async (): Promise<boolean> => {
+    if (!enabled || !techniqueId) return false;
 
     const script = getScriptForTechnique(techniqueId);
     if (!script) {
       setError('No script available for this technique');
-      return;
+      return false;
     }
 
     setIsLoading(true);
@@ -66,7 +66,7 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
       if (response.error) {
         console.error('Error generating full guide:', response.error);
         setError('No se pudo generar la guía de voz');
-        return;
+        return false;
       }
 
       const audioUrl = response.data?.audioUrl;
@@ -82,10 +82,13 @@ export function useVoiceGuide({ techniqueId, enabled }: UseVoiceGuideProps) {
 
         fullAudio.current = audio;
         setIsReady(true);
+        return true;
       }
+      return false;
     } catch (err) {
       console.error('Error preloading full audio:', err);
       setError('No se pudo cargar la guía de voz');
+      return false;
     } finally {
       setIsLoading(false);
     }

@@ -111,21 +111,31 @@ export default function Breathe() {
     }
   }, [state.isActive, state.currentPhase, voiceGuide]);
 
+  // Preload audio when component mounts or technique changes
+  useEffect(() => {
+    if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading) {
+      voiceGuide.preloadAudio();
+    }
+  }, [voiceEnabled, techniqueId]);
+
   const handleStart = useCallback(async () => {
     voiceGuide.markUserInteraction();
     
-    // Preload audio if not ready
+    // Preload audio if not ready (fallback)
     if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading) {
       toast.loading('Preparando guía de voz...', { id: 'voice-loading' });
-      await voiceGuide.preloadAudio();
+      const loaded = await voiceGuide.preloadAudio();
       toast.dismiss('voice-loading');
-    }
-    
-    start();
-    
-    // Play the full audio guide when session starts
-    if (voiceEnabled && voiceGuide.isReady) {
-      voiceGuide.playFullGuide();
+      
+      start();
+      if (loaded) {
+        voiceGuide.playFullGuide();
+      }
+    } else {
+      start();
+      if (voiceEnabled && voiceGuide.isReady) {
+        voiceGuide.playFullGuide();
+      }
     }
   }, [voiceGuide, voiceEnabled, start]);
 
