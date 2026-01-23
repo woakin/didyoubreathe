@@ -74,6 +74,13 @@ export const es = {
     streakMessage: '🔥 ¡Racha de {count} días!',
     loadingVoice: 'Preparando guía de voz...',
   },
+  sessionComplete: {
+    title: 'Sesión Completada',
+    wellDone: '¡Bien hecho!',
+    thisSession: 'Esta sesión',
+    today: 'Hoy',
+    streakCelebration: '¡{count} días seguidos!',
+  },
   settings: {
     title: 'Configuración',
     voiceGuide: 'Voz de la guía',
