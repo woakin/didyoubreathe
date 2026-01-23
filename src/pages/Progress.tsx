@@ -5,6 +5,7 @@ import { PageTransition } from '@/components/layout/PageTransition';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Flame, Clock, Calendar, TrendingUp, Mail } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -25,6 +26,7 @@ interface SessionStats {
 export default function Progress() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [stats, setStats] = useState<SessionStats>({
     totalSessions: 0,
@@ -50,7 +52,6 @@ export default function Progress() {
     if (!user) return;
 
     try {
-      // Fetch streak data and profile in parallel
       const [streakResult, profileResult] = await Promise.all([
         supabase
           .from('daily_streaks')
@@ -72,7 +73,6 @@ export default function Progress() {
         setWeeklyEmailEnabled(profileResult.data.weekly_email_enabled ?? true);
       }
 
-      // Fetch session stats
       const { data: sessions } = await supabase
         .from('breathing_sessions')
         .select('*')
@@ -84,7 +84,6 @@ export default function Progress() {
           0
         );
 
-        // Calculate this week's sessions
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
         const thisWeekSessions = sessions.filter(
@@ -104,11 +103,31 @@ export default function Progress() {
     }
   };
 
+  const toggleWeeklyEmail = async () => {
+    if (!user) return;
+    
+    setSavingPreference(true);
+    const newValue = !weeklyEmailEnabled;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ weekly_email_enabled: newValue })
+      .eq('user_id', user.id);
+    
+    if (error) {
+      toast.error(t.common.loading);
+    } else {
+      setWeeklyEmailEnabled(newValue);
+      toast.success(newValue ? t.progress.emailEnabled : t.progress.emailDisabled);
+    }
+    setSavingPreference(false);
+  };
+
   if (authLoading || loading) {
     return (
       <MainLayout>
         <PageTransition className="flex items-center justify-center min-h-screen">
-          <div className="animate-pulse text-muted-foreground">Cargando...</div>
+          <div className="animate-pulse text-muted-foreground">{t.common.loading}</div>
         </PageTransition>
       </MainLayout>
     );
@@ -123,8 +142,8 @@ export default function Progress() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Tu progreso</h1>
-            <p className="text-sm text-muted-foreground">Celebra cada respiración</p>
+            <h1 className="text-2xl font-semibold text-foreground">{t.progress.title}</h1>
+            <p className="text-sm text-muted-foreground">{t.progress.subtitle}</p>
           </div>
         </header>
 
@@ -138,11 +157,11 @@ export default function Progress() {
               {streak?.current_streak || 0}
             </div>
             <p className="text-muted-foreground">
-              {streak?.current_streak === 1 ? 'día de racha' : 'días de racha'}
+              {t.progress.currentStreak}
             </p>
             {streak && streak.longest_streak > 0 && (
               <p className="text-xs text-muted-foreground mt-2">
-                Récord personal: {streak.longest_streak} días
+                {t.progress.personalRecord}: {streak.longest_streak} {t.progress.days}
               </p>
             )}
           </CardContent>
@@ -154,14 +173,14 @@ export default function Progress() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                <CardTitle className="text-sm font-medium">Esta semana</CardTitle>
+                <CardTitle className="text-sm font-medium">{t.progress.thisWeek}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {stats.thisWeekSessions}
               </div>
-              <p className="text-xs text-muted-foreground">sesiones</p>
+              <p className="text-xs text-muted-foreground">{t.progress.sessions}</p>
             </CardContent>
           </Card>
 
@@ -169,14 +188,14 @@ export default function Progress() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <TrendingUp className="h-4 w-4" />
-                <CardTitle className="text-sm font-medium">Total</CardTitle>
+                <CardTitle className="text-sm font-medium">{t.progress.total}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {stats.totalSessions}
               </div>
-              <p className="text-xs text-muted-foreground">sesiones</p>
+              <p className="text-xs text-muted-foreground">{t.progress.sessions}</p>
             </CardContent>
           </Card>
 
@@ -184,12 +203,12 @@ export default function Progress() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                <CardTitle className="text-sm font-medium">Tiempo total de práctica</CardTitle>
+                <CardTitle className="text-sm font-medium">{t.progress.totalPracticeTime}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">
-                {stats.totalMinutes} <span className="text-lg font-normal text-muted-foreground">min</span>
+                {stats.totalMinutes} <span className="text-lg font-normal text-muted-foreground">{t.progress.minutes}</span>
               </div>
             </CardContent>
           </Card>
@@ -203,32 +222,16 @@ export default function Progress() {
                 <Mail className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Resumen semanal
+                    {t.progress.weeklySummary}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Recibe tu progreso cada lunes
+                    {t.progress.receiveProgress}
                   </p>
                 </div>
               </div>
               <Switch
                 checked={weeklyEmailEnabled}
-                onCheckedChange={async () => {
-                  setSavingPreference(true);
-                  const newValue = !weeklyEmailEnabled;
-                  
-                  const { error } = await supabase
-                    .from('profiles')
-                    .update({ weekly_email_enabled: newValue })
-                    .eq('user_id', user!.id);
-                  
-                  if (error) {
-                    toast.error('Error al guardar preferencia');
-                  } else {
-                    setWeeklyEmailEnabled(newValue);
-                    toast.success(newValue ? 'Emails semanales activados' : 'Emails semanales desactivados');
-                  }
-                  setSavingPreference(false);
-                }}
+                onCheckedChange={toggleWeeklyEmail}
                 disabled={savingPreference}
               />
             </div>
@@ -241,7 +244,7 @@ export default function Progress() {
           className="w-full animate-fade-in-up delay-400"
           size="lg"
         >
-          Continuar practicando
+          {t.progress.continuePracticing}
         </Button>
       </PageTransition>
     </MainLayout>

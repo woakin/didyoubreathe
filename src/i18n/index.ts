@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { es, Translations } from './translations/es';
 import { en } from './translations/en';
 
@@ -45,10 +45,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     t: translations[language],
   };
 
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-    </LanguageContext.Provider>
+  return React.createElement(
+    LanguageContext.Provider,
+    { value },
+    children
   );
 }
 
