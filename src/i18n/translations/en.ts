@@ -30,6 +30,10 @@ export const en: Translations = {
     findPractice: 'Find my practice',
     skip: 'Choose on my own',
     recommended: 'Recommended',
+    ctaAnxious: 'Calm my mind',
+    ctaStressed: 'Find my calm',
+    ctaNeutral: 'Start my practice',
+    ctaCalm: 'Maintain my peace',
   },
   techniques: {
     title: 'Choose your practice',

@@ -28,6 +28,10 @@ export const es = {
     findPractice: 'Encontrar mi práctica',
     skip: 'Elegir por mi cuenta',
     recommended: 'Recomendado',
+    ctaAnxious: 'Calmar mi mente',
+    ctaStressed: 'Encontrar mi calma',
+    ctaNeutral: 'Comenzar mi práctica',
+    ctaCalm: 'Mantener mi paz',
   },
   techniques: {
     title: 'Elige tu práctica',

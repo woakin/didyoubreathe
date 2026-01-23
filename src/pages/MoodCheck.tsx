@@ -14,12 +14,13 @@ const getRecommendedTechnique = (score: number): string => {
   return 'nadi-shodhana';                    // Deepen existing calm
 };
 
-// Get mood color based on score (anxious = warm, calm = cool)
-const getMoodColor = (score: number): string => {
-  if (score <= 25) return 'bg-accent';
-  if (score <= 50) return 'bg-secondary';
-  if (score <= 75) return 'bg-primary/40';
-  return 'bg-primary/20';
+// Get mood color as HSL for smooth interpolation (terracotta → sage)
+const getMoodColorHSL = (score: number): string => {
+  // Interpolate from terracotta (hue 20) to sage green (hue 160)
+  const hue = 20 + (score / 100) * 140;
+  const saturation = 50 - (score / 100) * 25;
+  const lightness = 68 + (score / 100) * 5;
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
 // Get orb animation based on mood
@@ -27,6 +28,14 @@ const getMoodAnimation = (score: number): string => {
   if (score <= 25) return 'animate-pulse';
   if (score <= 50) return 'animate-breathe-pulse';
   return 'animate-float';
+};
+
+// Get dynamic CTA text based on mood score
+const getCtaText = (score: number, t: any): string => {
+  if (score <= 25) return t.moodCheck.ctaAnxious;
+  if (score <= 50) return t.moodCheck.ctaStressed;
+  if (score <= 75) return t.moodCheck.ctaNeutral;
+  return t.moodCheck.ctaCalm;
 };
 
 export default function MoodCheck() {
@@ -62,19 +71,24 @@ export default function MoodCheck() {
   return (
     <div 
       className={cn(
-        "min-h-screen bg-background flex flex-col items-center justify-center px-6 py-10 transition-opacity duration-500",
+        "min-h-screen flex flex-col items-center justify-center px-6 py-10 transition-all duration-700",
         isExiting ? "opacity-0" : "opacity-100 animate-fade-in"
       )}
+      style={{
+        background: `radial-gradient(circle at 50% 30%, 
+          ${getMoodColorHSL(mood)}15 0%, 
+          hsl(var(--background)) 70%)`
+      }}
     >
-      {/* Mood Orb - Visual feedback */}
+      {/* Mood Orb - Visual feedback with synesthesia colors */}
       <div 
         className={cn(
-          "w-32 h-32 sm:w-40 sm:h-40 rounded-full mb-10 transition-all duration-700 shadow-lg",
-          getMoodColor(mood),
+          "w-32 h-32 sm:w-40 sm:h-40 rounded-full mb-10 transition-all duration-500 shadow-lg",
           getMoodAnimation(mood)
         )}
         style={{
-          boxShadow: `0 0 ${30 + (100 - mood) * 0.5}px hsl(var(--primary) / ${0.2 + (100 - mood) * 0.003})`
+          backgroundColor: getMoodColorHSL(mood),
+          boxShadow: `0 0 ${30 + (100 - mood) * 0.5}px ${getMoodColorHSL(mood)}50`
         }}
       />
 
@@ -120,7 +134,9 @@ export default function MoodCheck() {
           onClick={handleContinue}
           className="w-full h-14 text-base font-medium rounded-xl gap-2"
         >
-          {t.moodCheck.findPractice}
+          <span className="transition-opacity duration-300">
+            {getCtaText(mood, t)}
+          </span>
           <ChevronRight className="w-5 h-5" />
         </Button>
         
