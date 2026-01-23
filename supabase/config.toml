@@ -3,5 +3,11 @@ project_id = "dpgcjtovpdmulhticqdz"
 [functions.generate-breath-guide]
 verify_jwt = false
 
-[functions.custom-auth-emails]
+[functions.request-password-reset]
+verify_jwt = false
+
+[functions.verify-reset-token]
+verify_jwt = false
+
+[functions.send-weekly-summary]
 verify_jwt = false
