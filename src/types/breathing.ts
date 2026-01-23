@@ -29,3 +29,18 @@ export interface SessionState {
   phaseTimeRemaining: number;
   totalTimeRemaining: number;
 }
+
+// Audio-driven synchronization types
+export interface AudioCue {
+  word: string;
+  time: number;
+  phase?: BreathPhase;
+  count?: number;
+}
+
+export interface AudioTimestamps {
+  techniqueId: string;
+  voiceId: string;
+  totalDuration: number;
+  cues: AudioCue[];
+}
