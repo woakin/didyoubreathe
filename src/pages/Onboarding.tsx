@@ -24,17 +24,20 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-between p-6 py-12">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-between px-6 py-10 animate-fade-in">
       {/* Logo / Título */}
-      <div className="text-center">
-        <h1 className="text-3xl font-light tracking-wide text-foreground">
+      <header className="text-center space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           Did You Breathe?
         </h1>
-      </div>
+        <p className="text-muted-foreground text-sm">
+          Respira conscientemente, vive plenamente
+        </p>
+      </header>
 
       {/* Contenedor de Video */}
-      <div className="flex-1 w-full max-w-md flex flex-col items-center justify-center gap-4">
-        <div className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl bg-black">
+      <div className="flex-1 w-full max-w-sm flex flex-col items-center justify-center gap-6 py-8">
+        <div className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-xl bg-card border border-border">
           <video
             ref={videoRef}
             src="/videos/onboarding-intro.mp4"
@@ -48,12 +51,12 @@ export default function Onboarding() {
           {!isPlaying && (
             <div 
               onClick={handlePlay}
-              className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 cursor-pointer transition-opacity"
+              className="absolute inset-0 flex flex-col items-center justify-center bg-foreground/30 backdrop-blur-[2px] cursor-pointer group"
             >
-              <div className="w-20 h-20 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 transition-transform">
-                <Play className="w-10 h-10 text-white fill-white" />
+              <div className="w-20 h-20 flex items-center justify-center rounded-full bg-primary shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Play className="w-9 h-9 text-primary-foreground fill-primary-foreground ml-1" />
               </div>
-              <p className="mt-4 text-white/90 font-medium">
+              <p className="mt-5 text-primary-foreground font-medium text-sm bg-primary/90 px-4 py-2 rounded-full">
                 Toca para comenzar
               </p>
             </div>
@@ -61,30 +64,41 @@ export default function Onboarding() {
         </div>
 
         {/* Indicador de duración */}
-        <p className="text-sm text-muted-foreground flex items-center gap-2">
-          <span>•</span> 30 segundos <span>•</span>
-        </p>
+        <div className="flex items-center gap-3 text-muted-foreground text-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+          <span>30 segundos de introducción</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+        </div>
       </div>
 
       {/* CTAs */}
-      <div className="w-full max-w-md flex flex-col items-center gap-4">
+      <footer className="w-full max-w-sm flex flex-col items-center gap-4">
         {!isPlaying ? (
-          <Button onClick={handlePlay} className="w-full h-14 text-lg rounded-full">
+          <Button 
+            onClick={handlePlay} 
+            className="w-full h-14 text-base font-medium rounded-xl shadow-md hover:shadow-lg transition-shadow"
+          >
+            <Play className="w-5 h-5 mr-2 fill-current" />
             Empezar ahora
           </Button>
         ) : (
-          <Button variant="outline" onClick={handleSkip} className="w-full h-14 text-lg rounded-full border-dashed">
+          <Button 
+            variant="secondary" 
+            onClick={handleSkip} 
+            className="w-full h-14 text-base font-medium rounded-xl"
+          >
             Continuar a la App
           </Button>
         )}
         
         <button 
           onClick={handleSkip}
-          className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 py-2"
         >
-          Saltar introducción <SkipForward className="w-3 h-3" />
+          Saltar introducción 
+          <SkipForward className="w-4 h-4" />
         </button>
-      </div>
+      </footer>
     </div>
   );
 }
