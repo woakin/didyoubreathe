@@ -4,6 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { BreathingBlob } from '@/components/BreathingBlob';
 import { DynamicMeshBackground } from '@/components/DynamicMeshBackground';
+import { SessionComplete } from '@/components/SessionComplete';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getTechniqueById } from '@/data/techniques';
@@ -27,6 +28,14 @@ export default function BreatheV2() {
   const { user } = useAuth();
   const { language, t } = useLanguage();
   const lastPhaseRef = useRef<string>('idle');
+  
+  // Session stats for completion screen
+  const [sessionStats, setSessionStats] = useState({
+    duration: 0,
+    todayMinutes: 0,
+    streak: 0,
+  });
+  const [showComplete, setShowComplete] = useState(false);
   
   const availableVoices = getVoicesForLanguage(language);
   const defaultVoice = getDefaultVoiceForLanguage(language);
@@ -72,6 +81,35 @@ export default function BreatheV2() {
     voiceId: selectedVoice,
   });
 
+  // Fetch today's total minutes helper
+  const fetchTodayStats = useCallback(async () => {
+    if (!user) return { todayMinutes: 0, streak: 0 };
+    
+    const today = new Date().toISOString().split('T')[0];
+    const startOfDay = `${today}T00:00:00`;
+    const endOfDay = `${today}T23:59:59`;
+    
+    const [sessionsResult, streakResult] = await Promise.all([
+      supabase
+        .from('breathing_sessions')
+        .select('duration_seconds')
+        .eq('user_id', user.id)
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay),
+      supabase
+        .from('daily_streaks')
+        .select('current_streak')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ]);
+    
+    const totalSeconds = sessionsResult.data?.reduce((acc, s) => acc + (s.duration_seconds || 0), 0) || 0;
+    return {
+      todayMinutes: Math.round(totalSeconds / 60),
+      streak: streakResult.data?.current_streak || 0,
+    };
+  }, [user]);
+
   // Audio-driven session (when voice is enabled)
   const audioDrivenSession = useAudioDrivenSession({
     timestamps: voiceGuide.timestamps,
@@ -96,13 +134,13 @@ export default function BreatheV2() {
           .eq('user_id', user.id)
           .maybeSingle();
 
+        let newStreak = 1;
         if (streakData) {
           const lastSessionDate = streakData.last_session_date;
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-          let newStreak = 1;
           if (lastSessionDate === yesterdayStr) {
             newStreak = streakData.current_streak + 1;
           } else if (lastSessionDate === today) {
@@ -117,17 +155,20 @@ export default function BreatheV2() {
               last_session_date: today,
             })
             .eq('user_id', user.id);
-
-          if (newStreak > streakData.current_streak) {
-            toast.success(t.breathe.streakMessage.replace('{count}', String(newStreak)));
-          }
         }
 
-        toast.success(t.breathe.sessionComplete);
+        // Fetch updated stats and show celebration
+        const stats = await fetchTodayStats();
+        setSessionStats({
+          duration,
+          todayMinutes: stats.todayMinutes,
+          streak: newStreak,
+        });
+        setShowComplete(true);
       } catch (error) {
         console.error('Error saving session:', error);
       }
-    }, [user, technique, voiceGuide.timestamps, t]),
+    }, [user, technique, voiceGuide.timestamps, fetchTodayStats]),
   });
 
   // Fallback timer-driven session (when voice is disabled)
@@ -146,11 +187,19 @@ export default function BreatheV2() {
           technique: technique.id,
           duration_seconds: duration,
         });
-        toast.success(t.breathe.sessionComplete);
+        
+        // Fetch updated stats and show celebration
+        const stats = await fetchTodayStats();
+        setSessionStats({
+          duration,
+          todayMinutes: stats.todayMinutes,
+          streak: stats.streak,
+        });
+        setShowComplete(true);
       } catch (error) {
         console.error('Error saving session:', error);
       }
-    }, [user, technique, t]),
+    }, [user, technique, fetchTodayStats]),
   });
 
   // Determine which session to use
@@ -401,7 +450,7 @@ export default function BreatheV2() {
                   size="lg"
                   onClick={handleStart}
                   disabled={voiceGuide.isLoading}
-                  className="w-40 h-14 text-lg shadow-lg"
+                  className="w-40 h-14 text-lg shadow-lg animate-button-breathe"
                 >
                   {voiceGuide.isLoading ? (
                     <>
@@ -468,6 +517,23 @@ export default function BreatheV2() {
           </div>
         </PageTransition>
       </MainLayout>
+      
+      {/* Celebration overlay */}
+      {showComplete && (
+        <SessionComplete
+          sessionDuration={sessionStats.duration}
+          todayTotalMinutes={sessionStats.todayMinutes}
+          currentStreak={sessionStats.streak}
+          onRepeat={() => {
+            setShowComplete(false);
+            handleStart();
+          }}
+          onContinue={() => {
+            setShowComplete(false);
+            navigate('/techniques');
+          }}
+        />
+      )}
     </>
   );
 }
