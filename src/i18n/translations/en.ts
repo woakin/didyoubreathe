@@ -85,6 +85,7 @@ export const en: Translations = {
     sessionComplete: 'Session complete. Well done!',
     streakMessage: '🔥 {count} day streak!',
     loadingVoice: 'Preparing voice guide...',
+    preparing: 'Preparing...',
   },
   sessionComplete: {
     title: 'Session Complete',

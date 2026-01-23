@@ -116,7 +116,27 @@ export default {
           },
           "50%": { 
             boxShadow: "0 0 35px hsl(var(--primary) / 0.25), 0 12px 48px hsl(var(--primary) / 0.15)" 
+        },
+        "aura-pulse": {
+          "0%": { 
+            transform: "scale(1)", 
+            opacity: "0.6" 
           },
+          "100%": { 
+            transform: "scale(1.4)", 
+            opacity: "0" 
+          },
+        },
+        "aura-pulse-delayed": {
+          "0%": { 
+            transform: "scale(1)", 
+            opacity: "0.4" 
+          },
+          "100%": { 
+            transform: "scale(1.5)", 
+            opacity: "0" 
+          },
+        },
         },
       },
       animation: {
@@ -129,6 +149,8 @@ export default {
         "wave-flow": "wave-flow 6s ease-in-out infinite",
         "infinity-trace": "infinity-trace 8s linear infinite",
         "recommended-glow": "recommended-glow 4s ease-in-out infinite",
+        "aura-pulse": "aura-pulse 2s ease-out infinite",
+        "aura-pulse-delayed": "aura-pulse-delayed 2s ease-out infinite 0.5s",
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
