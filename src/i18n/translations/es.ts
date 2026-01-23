@@ -83,6 +83,7 @@ export const es = {
     sessionComplete: 'Sesión completada. ¡Bien hecho!',
     streakMessage: '🔥 ¡Racha de {count} días!',
     loadingVoice: 'Preparando guía de voz...',
+    preparing: 'Preparando...',
   },
   sessionComplete: {
     title: 'Sesión Completada',

@@ -16,7 +16,7 @@ import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +28,7 @@ export default function BreatheV2() {
   const { user } = useAuth();
   const { language, t } = useLanguage();
   const lastPhaseRef = useRef<string>('idle');
-  
+  const hapticIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Session stats for completion screen
   const [sessionStats, setSessionStats] = useState({
     duration: 0,
@@ -206,14 +206,39 @@ export default function BreatheV2() {
   const isAudioDriven = voiceEnabled && voiceGuide.isReady && !voiceGuide.useTimerMode;
   const sessionState = isAudioDriven ? audioDrivenSession.state : timerSession.state;
 
-  // Trigger haptic feedback on phase changes
+  // Trigger haptic feedback on phase changes - includes continuous haptics
   useEffect(() => {
     const currentPhase = sessionState.currentPhase;
+    const active = sessionState.isActive;
+    const paused = sessionState.isPaused;
+    
     if (currentPhase !== lastPhaseRef.current) {
       haptics.onPhaseChange(currentPhase);
       lastPhaseRef.current = currentPhase;
     }
-  }, [sessionState.currentPhase, haptics]);
+    
+    // Clear previous continuous haptic interval
+    if (hapticIntervalRef.current) {
+      clearInterval(hapticIntervalRef.current);
+      hapticIntervalRef.current = null;
+    }
+    
+    // Start continuous haptic for active breathing phases
+    if (active && !paused) {
+      if (currentPhase === 'inhale') {
+        hapticIntervalRef.current = haptics.startContinuousInhale();
+      } else if (currentPhase === 'exhale') {
+        hapticIntervalRef.current = haptics.startContinuousExhale();
+      }
+    }
+    
+    return () => {
+      if (hapticIntervalRef.current) {
+        clearInterval(hapticIntervalRef.current);
+        hapticIntervalRef.current = null;
+      }
+    };
+  }, [sessionState.currentPhase, sessionState.isActive, sessionState.isPaused, haptics]);
 
   // Preload audio when component mounts or voice changes
   useEffect(() => {
@@ -325,6 +350,7 @@ export default function BreatheV2() {
   const isActive = sessionState.isActive;
   const isPaused = sessionState.isPaused;
   const currentPhase = sessionState.currentPhase;
+  const isFullyImmersed = isActive && !isPaused && currentPhase !== 'complete';
 
   return (
     <>
@@ -333,8 +359,12 @@ export default function BreatheV2() {
       
       <MainLayout className="bg-transparent">
         <PageTransition className="flex flex-col min-h-screen px-6 py-8">
-          {/* Header with glassmorphism */}
-          <header className="flex items-center justify-between mb-6 animate-fade-in">
+          {/* Header with glassmorphism - fades during active session */}
+          <header className={cn(
+            "flex items-center justify-between mb-6 animate-fade-in",
+            "transition-all duration-700 ease-in-out",
+            isFullyImmersed && "opacity-0 pointer-events-none"
+          )}>
             <Button
               variant="ghost"
               size="icon"
@@ -450,13 +480,18 @@ export default function BreatheV2() {
                   size="lg"
                   onClick={handleStart}
                   disabled={voiceGuide.isLoading}
-                  className="w-40 h-14 text-lg shadow-lg animate-button-breathe"
+                  className={cn(
+                    "w-40 h-14 text-lg shadow-lg",
+                    !voiceGuide.isLoading && "animate-button-breathe"
+                  )}
                 >
                   {voiceGuide.isLoading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      {t.common.loading}
-                    </>
+                    <div className="relative flex items-center justify-center">
+                      {/* Expanding aura rings */}
+                      <span className="absolute inset-0 -m-4 rounded-full bg-primary/30 animate-aura-pulse" />
+                      <span className="absolute inset-0 -m-2 rounded-full bg-primary/20 animate-aura-pulse-delayed" />
+                      <span className="relative z-10">{t.breathe.preparing}</span>
+                    </div>
                   ) : (
                     <>
                       <Play className="h-5 w-5 mr-2" />
