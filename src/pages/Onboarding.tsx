@@ -1,14 +1,27 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Play, SkipForward } from 'lucide-react';
 import { useLanguage } from '@/i18n';
+import { cn } from '@/lib/utils';
+
+const ONBOARDING_COMPLETE_KEY = 'hasCompletedOnboarding';
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { t } = useLanguage();
+
+  // Check if returning user
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+    if (hasSeenOnboarding === 'true') {
+      // Returning user - skip to mood check
+      navigate('/mood-check', { replace: true });
+    }
+  }, [navigate]);
 
   const handlePlay = () => {
     if (videoRef.current) {
@@ -18,17 +31,32 @@ export default function Onboarding() {
   };
 
   const handleVideoEnd = () => {
-    navigate('/techniques');
+    // Start glassmorphism transition
+    setIsTransitioning(true);
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    
+    // Navigate after transition completes
+    setTimeout(() => {
+      navigate('/mood-check');
+    }, 800);
   };
 
   const handleSkip = () => {
-    navigate('/techniques');
+    setIsTransitioning(true);
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    
+    setTimeout(() => {
+      navigate('/mood-check');
+    }, 500);
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-between px-6 py-10 animate-fade-in">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-between px-6 py-10 animate-fade-in relative overflow-hidden">
       {/* Logo / Título */}
-      <header className="text-center space-y-2">
+      <header className={cn(
+        "text-center space-y-2 transition-all duration-500 z-10",
+        isTransitioning && "opacity-0 translate-y-[-20px]"
+      )}>
         <h1 className="text-2xl font-light tracking-wide text-foreground/90">
           {t.onboarding.title}
         </h1>
@@ -38,7 +66,10 @@ export default function Onboarding() {
       </header>
 
       {/* Contenedor de Video */}
-      <div className="flex-1 w-full max-w-sm flex flex-col items-center justify-center gap-6 py-8">
+      <div className={cn(
+        "flex-1 w-full max-w-sm flex flex-col items-center justify-center gap-6 py-8 transition-all duration-700 z-10",
+        isTransitioning && "scale-95 opacity-0"
+      )}>
         <div className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-xl bg-card border border-border">
           <video
             ref={videoRef}
@@ -69,11 +100,13 @@ export default function Onboarding() {
             </div>
           )}
         </div>
-
       </div>
 
       {/* CTAs */}
-      <footer className="w-full max-w-sm flex flex-col items-center gap-4">
+      <footer className={cn(
+        "w-full max-w-sm flex flex-col items-center gap-4 z-10 transition-all duration-500",
+        isTransitioning && "opacity-0 translate-y-[20px]"
+      )}>
         {isPlaying && (
           <Button 
             variant="secondary" 
@@ -92,6 +125,16 @@ export default function Onboarding() {
           <SkipForward className="w-4 h-4" />
         </button>
       </footer>
+
+      {/* Glassmorphism transition overlay */}
+      <div 
+        className={cn(
+          "absolute inset-0 transition-all duration-700 pointer-events-none",
+          isTransitioning 
+            ? "backdrop-blur-xl bg-background/70" 
+            : "backdrop-blur-0 bg-transparent"
+        )}
+      />
     </div>
   );
 }

@@ -14,6 +14,15 @@ export const es = {
     skipIntro: 'Saltar introducción',
     continueToApp: 'Continuar a la App',
   },
+  moodCheck: {
+    title: '¿Cómo te sientes ahora?',
+    subtitle: 'Esto nos ayuda a recomendarte la práctica ideal',
+    anxious: 'Ansioso/a',
+    calm: 'Tranquilo/a',
+    findPractice: 'Encontrar mi práctica',
+    skip: 'Elegir por mi cuenta',
+    recommended: 'Recomendado para ti',
+  },
   techniques: {
     title: 'Elige tu práctica',
     subtitle: 'Selecciona una técnica para comenzar',
