@@ -9,6 +9,12 @@ export const en: Translations = {
     signIn: 'Sign in',
     signOut: 'Sign out',
   },
+  navigation: {
+    practice: 'Practice',
+    progress: 'Progress',
+    settings: 'Settings',
+    profile: 'Profile',
+  },
   onboarding: {
     title: 'Did You Breathe?',
     subtitle: 'Breathe consciously, live fully',
