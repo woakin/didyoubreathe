@@ -4,11 +4,14 @@ import { cn } from '@/lib/utils';
 
 interface BreathingCircleProps {
   phase: BreathPhase;
-  phaseTimeRemaining: number;
-  phaseDuration: number;
-  totalTimeRemaining: number;
-  totalDuration: number;
+  phaseProgress?: number; // 0-1 progress within current phase (audio-driven mode)
+  phaseTimeRemaining?: number; // Timer-driven mode
+  phaseDuration?: number; // Timer-driven mode
+  totalProgress?: number; // 0-1 overall progress (audio-driven mode)
+  totalTimeRemaining?: number; // Timer-driven mode
+  totalDuration?: number; // Timer-driven mode
   isActive: boolean;
+  currentCount?: number; // Current number being spoken (audio-driven)
 }
 
 const phaseLabels: Record<BreathPhase, string> = {
@@ -33,51 +36,76 @@ const phaseColors: Record<BreathPhase, string> = {
 
 export function BreathingCircle({
   phase,
+  phaseProgress,
   phaseTimeRemaining,
   phaseDuration,
+  totalProgress,
   totalTimeRemaining,
   totalDuration,
   isActive,
+  currentCount,
 }: BreathingCircleProps) {
-  const progress = useMemo(() => {
+  // Determine if we're in audio-driven or timer-driven mode
+  const isAudioDriven = phaseProgress !== undefined && totalProgress !== undefined;
+
+  // Calculate progress for timer-driven mode
+  const timerProgress = useMemo(() => {
     if (!isActive || phase === 'complete') return 1;
+    if (phaseTimeRemaining === undefined || phaseDuration === undefined) return 0;
     return 1 - phaseTimeRemaining / phaseDuration;
   }, [phaseTimeRemaining, phaseDuration, isActive, phase]);
 
-  const totalProgress = useMemo(() => {
+  // Calculate total progress for timer-driven mode
+  const timerTotalProgress = useMemo(() => {
+    if (totalTimeRemaining === undefined || totalDuration === undefined) return 0;
     return 1 - totalTimeRemaining / totalDuration;
   }, [totalTimeRemaining, totalDuration]);
+
+  // Use audio-driven or timer-driven progress
+  const effectiveProgress = isAudioDriven ? phaseProgress : timerProgress;
+  const effectiveTotalProgress = isAudioDriven ? totalProgress : timerTotalProgress;
 
   // SVG circle properties for progress ring
   const size = 280;
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - totalProgress);
+  const strokeDashoffset = circumference * (1 - effectiveTotalProgress);
 
   // Animation scale based on phase
   const scale = useMemo(() => {
     if (!isActive) return 1;
     if (phase === 'complete') return 1;
     
-    const phaseProgress = 1 - phaseTimeRemaining / phaseDuration;
+    const progress = effectiveProgress || 0;
     
     switch (phase) {
       case 'prepare':
         // Gentle pulse during preparation
-        return 1 + 0.03 * Math.sin(phaseProgress * Math.PI * 2);
+        return 1 + 0.03 * Math.sin(progress * Math.PI * 2);
       case 'inhale':
-        return 1 + 0.15 * phaseProgress;
+        return 1 + 0.15 * progress;
       case 'holdIn':
         return 1.15;
       case 'exhale':
-        return 1.15 - 0.15 * phaseProgress;
+        return 1.15 - 0.15 * progress;
       case 'holdOut':
         return 1;
       default:
         return 1;
     }
-  }, [phase, phaseTimeRemaining, phaseDuration, isActive]);
+  }, [phase, effectiveProgress, isActive]);
+
+  // Display count - use currentCount for audio-driven, or calculate for timer mode
+  const displayCount = useMemo(() => {
+    if (isAudioDriven && currentCount) {
+      return currentCount;
+    }
+    if (!isAudioDriven && phaseDuration !== undefined && phaseTimeRemaining !== undefined) {
+      return phaseDuration - phaseTimeRemaining + 1;
+    }
+    return null;
+  }, [isAudioDriven, currentCount, phaseDuration, phaseTimeRemaining]);
 
   return (
     <div className="relative flex items-center justify-center">
@@ -108,7 +136,7 @@ export function BreathingCircle({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-1000 ease-linear"
+          className="transition-all duration-100 ease-linear"
         />
       </svg>
 
@@ -118,7 +146,7 @@ export function BreathingCircle({
           'flex flex-col items-center justify-center rounded-full',
           'bg-gradient-to-br shadow-xl',
           'w-56 h-56',
-          'transition-all duration-1000 ease-in-out',
+          'transition-transform duration-100 ease-out',
           phaseColors[phase]
         )}
         style={{ transform: `scale(${scale})` }}
@@ -133,9 +161,9 @@ export function BreathingCircle({
           </span>
         )}
         
-        {isActive && phase !== 'complete' && phase !== 'prepare' && (
+        {isActive && phase !== 'complete' && phase !== 'prepare' && displayCount !== null && (
           <span className="text-5xl font-light text-foreground/90">
-            {phaseDuration - phaseTimeRemaining + 1}
+            {displayCount}
           </span>
         )}
         
