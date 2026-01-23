@@ -23,7 +23,7 @@ export const en: Translations = {
     calm: 'Calm',
     findPractice: 'Find my practice',
     skip: 'Choose on my own',
-    recommended: 'Recommended for you',
+    recommended: 'Recommended',
   },
   techniques: {
     title: 'Choose your practice',
