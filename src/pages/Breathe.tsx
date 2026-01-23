@@ -156,7 +156,7 @@ export default function Breathe() {
 
   if (!technique) {
     return (
-      <MainLayout>
+      <MainLayout withBottomNav={false}>
         <PageTransition className="flex items-center justify-center">
           <div className="text-center">
             <p className="text-muted-foreground">Técnica no encontrada</p>
@@ -189,7 +189,7 @@ export default function Breathe() {
   const totalDuration = calculateTotalTime();
 
   return (
-    <MainLayout>
+    <MainLayout withBottomNav={false}>
       <PageTransition className="flex flex-col min-h-screen px-6 py-8">
         {/* Header */}
         <header className="flex items-center justify-between mb-6 animate-fade-in">

@@ -88,7 +88,7 @@ export default function UpdatePassword() {
 
   if (tokenError) {
     return (
-      <MainLayout>
+      <MainLayout withBottomNav={false}>
         <PageTransition className="flex flex-col items-center justify-center min-h-screen px-6 py-12">
           <div className="mb-8">
             <BreathingOrb size="sm" />
@@ -110,7 +110,7 @@ export default function UpdatePassword() {
 
   if (success) {
     return (
-      <MainLayout>
+      <MainLayout withBottomNav={false}>
         <PageTransition className="flex flex-col items-center justify-center min-h-screen px-6 py-12">
           <div className="mb-8">
             <BreathingOrb size="sm" />
@@ -129,7 +129,7 @@ export default function UpdatePassword() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout withBottomNav={false}>
       <PageTransition className="flex flex-col items-center justify-center min-h-screen px-6 py-12">
         <div className="mb-8">
           <BreathingOrb size="sm" />
