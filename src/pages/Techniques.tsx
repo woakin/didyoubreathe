@@ -43,7 +43,7 @@ export default function Techniques() {
     <MainLayout>
       <PageTransition className="px-4 sm:px-6 py-6 sm:py-8 pb-24">
         {/* Header */}
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 animate-fade-in">
+        <header className="flex items-start justify-between mb-6 animate-fade-in">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
               {t.techniques.title}
@@ -53,15 +53,15 @@ export default function Techniques() {
             </p>
           </div>
           
-          {/* Language Toggle */}
+          {/* Language Toggle - Icon only */}
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+            aria-label={`Switch to ${language === 'es' ? 'English' : 'Spanish'}`}
           >
             <Globe className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase">{language}</span>
           </Button>
         </header>
 
