@@ -57,7 +57,7 @@ export default function Onboarding() {
         "text-center space-y-2 transition-all duration-500 z-10",
         isTransitioning && "opacity-0 translate-y-[-20px]"
       )}>
-        <h1 className="text-2xl font-light tracking-[0.25em] text-foreground/90">
+        <h1 className="text-2xl font-light tracking-[0.35em] text-foreground/90">
           {t.onboarding.title}
         </h1>
         <p className="text-muted-foreground text-sm">

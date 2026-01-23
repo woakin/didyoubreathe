@@ -84,6 +84,13 @@ export const es = {
     streakMessage: '🔥 ¡Racha de {count} días!',
     loadingVoice: 'Preparando guía de voz...',
     preparing: 'Preparando...',
+    zenMode: 'Modo Zen',
+    exitZen: 'Salir del Modo Zen',
+    ambientSounds: 'Sonidos ambientales',
+    rain: 'Lluvia',
+    forest: 'Bosque',
+    waves: 'Olas del mar',
+    noAmbient: 'Sin sonido',
   },
   sessionComplete: {
     title: 'Sesión Completada',
