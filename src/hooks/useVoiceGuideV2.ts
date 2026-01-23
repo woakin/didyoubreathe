@@ -51,30 +51,42 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
     hasUserInteracted.current = true;
   }, []);
 
-  // Fetch audio and timestamps from the new endpoint
+  // State to track if we should use timer mode (audio found but no timestamps)
+  const [useTimerMode, setUseTimerMode] = useState(false);
+
+  // Fetch audio and timestamps from storage-only endpoint (NEVER generates audio)
   const preloadAudio = useCallback(async (): Promise<boolean> => {
     if (!enabled || !techniqueId) return false;
 
     setIsLoading(true);
     setError(null);
+    setUseTimerMode(false);
 
     try {
       const effectiveVoiceId = voiceId || getSelectedVoice();
 
-      const response = await supabase.functions.invoke('generate-with-timestamps', {
+      // Call the storage-only endpoint (no ElevenLabs API calls)
+      const response = await supabase.functions.invoke('fetch-cached-audio', {
         body: { techniqueId, voiceId: effectiveVoiceId },
       });
 
       if (response.error) {
-        console.error('Error fetching audio with timestamps:', response.error);
-        setError('No se pudo cargar la guía de voz');
+        console.error('Error fetching cached audio:', response.error);
+        setError('Guía de voz no disponible');
         return false;
       }
 
-      const { audioUrl, timestamps: timestampsData } = response.data;
+      const { found, audioUrl, timestamps: timestampsData, useTimerMode: shouldUseTimer } = response.data;
 
-      if (audioUrl && timestampsData) {
-        // Create and preload audio element
+      // Audio not pre-generated for this combination
+      if (!found) {
+        console.log(`[useVoiceGuideV2] Audio not cached for ${techniqueId}/${effectiveVoiceId}`);
+        setError('Guía de voz no disponible para esta combinación');
+        return false;
+      }
+
+      // Audio found - preload it
+      if (audioUrl) {
         const audio = new Audio(audioUrl);
         audio.preload = 'auto';
 
@@ -85,8 +97,16 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
         });
 
         audioRef.current = audio;
-        setAudioElement(audio); // State update triggers re-render for consumers
-        setTimestamps(timestampsData);
+        setAudioElement(audio);
+        
+        // Set timestamps if available
+        if (timestampsData && !shouldUseTimer) {
+          setTimestamps(timestampsData);
+        } else {
+          setTimestamps(null);
+          setUseTimerMode(true); // Signal to use timer-based visualization
+        }
+        
         setIsReady(true);
         return true;
       }
@@ -94,7 +114,7 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
       return false;
     } catch (err) {
       console.error('Error preloading audio:', err);
-      setError('No se pudo cargar la guía de voz');
+      setError('Guía de voz no disponible');
       return false;
     } finally {
       setIsLoading(false);
@@ -137,6 +157,7 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
     error,
     timestamps,
     audioElement,
+    useTimerMode,
     preloadAudio,
     play,
     pause,

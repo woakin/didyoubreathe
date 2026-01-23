@@ -148,7 +148,8 @@ export default function BreatheV2() {
   });
 
   // Determine which session to use
-  const isAudioDriven = voiceEnabled && voiceGuide.isReady;
+  // Use audio-driven mode only if voice is ready AND we have timestamps (not in timer fallback mode)
+  const isAudioDriven = voiceEnabled && voiceGuide.isReady && !voiceGuide.useTimerMode;
   const sessionState = isAudioDriven ? audioDrivenSession.state : timerSession.state;
 
   // Preload audio when component mounts or voice changes
@@ -175,13 +176,30 @@ export default function BreatheV2() {
         toast.dismiss('voice-loading');
 
         if (loaded) {
-          voiceGuide.play();
+          // Check if we have timestamps for audio-driven mode
+          if (voiceGuide.useTimerMode) {
+            // Audio loaded but no timestamps - play audio with timer-based visuals
+            toast.info('Usando modo visual con audio');
+            voiceGuide.play();
+            timerSession.start();
+          } else {
+            // Full audio-driven mode with timestamps
+            voiceGuide.play();
+          }
         } else {
-          // Fallback to timer mode
+          // Audio not available - fallback to timer-only mode
+          if (voiceGuide.error) {
+            toast.warning(voiceGuide.error);
+          }
           timerSession.start();
         }
       } else if (voiceGuide.isReady) {
-        voiceGuide.play();
+        if (voiceGuide.useTimerMode) {
+          voiceGuide.play();
+          timerSession.start();
+        } else {
+          voiceGuide.play();
+        }
       }
     } else {
       timerSession.start();
