@@ -1,38 +1,19 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Play, SkipForward } from 'lucide-react';
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showUnmutePrompt, setShowUnmutePrompt] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const attemptAutoplay = async () => {
-      try {
-        // Intento inicial con sonido
-        await video.play();
-      } catch (error) {
-        // Autoplay bloqueado por el navegador - silenciar y reintentar
-        video.muted = true;
-        setIsMuted(true);
-        try {
-          await video.play();
-          // Mostrar indicador visual para que el usuario active el sonido
-          setShowUnmutePrompt(true);
-        } catch (retryError) {
-          console.error("Autoplay fallido incluso en silencio", retryError);
-        }
-      }
-    };
-
-    attemptAutoplay();
-  }, []);
+  const handlePlay = () => {
+    if (videoRef.current) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
+  };
 
   const handleVideoEnd = () => {
     navigate('/techniques');
@@ -42,55 +23,68 @@ export default function Onboarding() {
     navigate('/techniques');
   };
 
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-      setShowUnmutePrompt(false);
-    }
-  };
-
   return (
-    <div className="relative w-full h-screen bg-black flex items-center justify-center">
-      <video
-        ref={videoRef}
-        src="/videos/onboarding-intro.mp4"
-        className="w-full h-full object-cover"
-        playsInline
-        preload="auto"
-        onEnded={handleVideoEnd}
-      />
-      
-      {/* Botón para saltar */}
-      <Button 
-        variant="ghost"
-        onClick={handleSkip}
-        className="absolute top-6 right-6 px-4 py-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-sm transition-colors"
-      >
-        Saltar intro
-      </Button>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-between p-6 py-12">
+      {/* Logo / Título */}
+      <div className="text-center">
+        <h1 className="text-3xl font-light tracking-wide text-foreground">
+          Did You Breathe?
+        </h1>
+      </div>
 
-      {/* Indicador de sonido si está silenciado por autoplay */}
-      {showUnmutePrompt && (
+      {/* Contenedor de Video */}
+      <div className="flex-1 w-full max-w-md flex flex-col items-center justify-center gap-4">
+        <div className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl bg-black">
+          <video
+            ref={videoRef}
+            src="/videos/onboarding-intro.mp4"
+            className="w-full h-full object-cover"
+            playsInline
+            preload="auto"
+            onEnded={handleVideoEnd}
+          />
+
+          {/* Overlay con botón Play (solo cuando no está reproduciendo) */}
+          {!isPlaying && (
+            <div 
+              onClick={handlePlay}
+              className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 cursor-pointer transition-opacity"
+            >
+              <div className="w-20 h-20 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 transition-transform">
+                <Play className="w-10 h-10 text-white fill-white" />
+              </div>
+              <p className="mt-4 text-white/90 font-medium">
+                Toca para comenzar
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Indicador de duración */}
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <span>•</span> 30 segundos <span>•</span>
+        </p>
+      </div>
+
+      {/* CTAs */}
+      <div className="w-full max-w-md flex flex-col items-center gap-4">
+        {!isPlaying ? (
+          <Button onClick={handlePlay} className="w-full h-14 text-lg rounded-full">
+            Empezar ahora
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={handleSkip} className="w-full h-14 text-lg rounded-full border-dashed">
+            Continuar a la App
+          </Button>
+        )}
+        
         <button 
-          onClick={toggleMute}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-primary text-primary-foreground rounded-full shadow-lg animate-bounce flex items-center gap-2"
+          onClick={handleSkip}
+          className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
         >
-          <Volume2 className="h-5 w-5" />
-          Activar sonido
+          Saltar introducción <SkipForward className="w-3 h-3" />
         </button>
-      )}
-
-      {/* Control de sonido discreto (siempre visible después de interacción) */}
-      {!showUnmutePrompt && (
-        <button
-          onClick={toggleMute}
-          className="absolute bottom-6 right-6 p-3 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-sm transition-colors"
-          aria-label={isMuted ? "Activar sonido" : "Silenciar"}
-        >
-          {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-        </button>
-      )}
+      </div>
     </div>
   );
 }
