@@ -8,10 +8,14 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children, className, showBackground = true }: MainLayoutProps) {
+  // Check if className contains bg-transparent to disable default background
+  const hasTransparentBg = className?.includes('bg-transparent');
+  const shouldShowBackground = showBackground && !hasTransparentBg;
+  
   return (
     <div className={cn('relative min-h-screen', className)}>
       {/* Subtle background pattern */}
-      {showBackground && (
+      {shouldShowBackground && (
         <div className="fixed inset-0 -z-10 overflow-hidden">
           {/* Warm gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-secondary/30 via-background to-accent/20" />
