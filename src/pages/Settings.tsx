@@ -29,7 +29,7 @@ const VOICE_STORAGE_KEY = 'breathe-voice-preference';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [selectedVoice, setSelectedVoice] = useState<string>('UDJf7VRO3sTy4sABpNWO');
+  const [selectedVoice, setSelectedVoice] = useState<string>('szJ1F5SgxGanyygoW');
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
