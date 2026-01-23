@@ -6,14 +6,18 @@ import { Button } from '@/components/ui/button';
 import { getBreathingTechniques } from '@/data/techniques';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n';
-import { User, LogOut, Flame } from 'lucide-react';
+import { User, LogOut, Flame, Globe } from 'lucide-react';
 
 export default function Techniques() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { language, t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   const techniques = getBreathingTechniques(language);
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'es' ? 'en' : 'es');
+  };
 
   const handleTechniqueSelect = (techniqueId: string) => {
     navigate(`/breathe/${techniqueId}`);
@@ -34,6 +38,17 @@ export default function Techniques() {
           </div>
           
           <div className="flex items-center gap-2">
+            {/* Language Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="text-xs font-medium uppercase">{language}</span>
+            </Button>
+
             {user ? (
               <>
                 <Button 
