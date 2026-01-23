@@ -51,7 +51,7 @@ export function TechniqueCard({
         'bg-card/70 backdrop-blur-sm border-border/40',
         'animate-fade-in-up',
         isFeatured && 'sm:row-span-2',
-        isRecommended && 'ring-2 ring-primary/50 shadow-lg shadow-primary/10'
+        isRecommended && 'ring-2 ring-primary/60 shadow-xl shadow-primary/20 animate-recommended-glow'
       )}
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -59,12 +59,13 @@ export function TechniqueCard({
       <div className={cn(
         "absolute inset-0 flex items-center justify-center transition-opacity duration-500",
         "opacity-15 group-hover:opacity-25",
-        isFeatured ? "opacity-20" : ""
+        isFeatured && "opacity-20",
+        isRecommended && "opacity-40 group-hover:opacity-50"
       )}>
         <BreathRhythmVisual
           techniqueId={technique.id}
           pattern={technique.pattern}
-          className="scale-150"
+          className={cn("scale-150", isRecommended && "scale-[2]")}
         />
       </div>
 
@@ -73,7 +74,7 @@ export function TechniqueCard({
         <div className="absolute top-3 right-3 z-10">
           <Badge 
             variant="default" 
-            className="bg-primary text-primary-foreground text-xs px-2 py-0.5 flex items-center gap-1 shadow-md"
+            className="bg-primary text-primary-foreground text-xs px-2 py-0.5 flex items-center gap-1 shadow-md animate-pulse-subtle"
           >
             <Sparkles className="h-3 w-3" />
             {t.moodCheck.recommended}

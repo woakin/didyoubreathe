@@ -110,6 +110,14 @@ export default {
           "0%": { strokeDashoffset: "200" },
           "100%": { strokeDashoffset: "0" },
         },
+        "recommended-glow": {
+          "0%, 100%": { 
+            boxShadow: "0 0 20px hsl(var(--primary) / 0.15), 0 8px 32px hsl(var(--primary) / 0.1)" 
+          },
+          "50%": { 
+            boxShadow: "0 0 35px hsl(var(--primary) / 0.25), 0 12px 48px hsl(var(--primary) / 0.15)" 
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -120,6 +128,7 @@ export default {
         "circle-breathe": "circle-breathe 10s ease-in-out infinite",
         "wave-flow": "wave-flow 6s ease-in-out infinite",
         "infinity-trace": "infinity-trace 8s linear infinite",
+        "recommended-glow": "recommended-glow 4s ease-in-out infinite",
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
