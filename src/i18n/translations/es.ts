@@ -5,7 +5,13 @@ export const es = {
     loading: 'Cargando...',
     save: 'Guardar',
     signIn: 'Iniciar sesión',
-    signOut: 'Cerrar sesión',
+    signOut: 'Salir',
+  },
+  navigation: {
+    practice: 'Práctica',
+    progress: 'Progreso',
+    settings: 'Ajustes',
+    profile: 'Perfil',
   },
   onboarding: {
     title: 'Did You Breathe?',
