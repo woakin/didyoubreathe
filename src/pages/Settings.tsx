@@ -3,29 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Volume2, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Volume2, Check, Loader2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface Voice {
-  id: string;
-  name: string;
-  description: string;
-  preview?: string;
-}
-
-// Voces optimizadas para meditación
-const availableVoices: Voice[] = [
-  { id: 'spPXlKT5a4JMfbhPRAzA', name: 'Camila', description: 'Voz suave y fluida para meditación' },
-  { id: 'rixsIpPlTphvsJd2mI03', name: 'Isabel', description: 'Voz tranquila y serena' },
-];
+import { useLanguage, Language } from '@/i18n';
+import { getVoicesForLanguage, getDefaultVoiceForLanguage, Voice } from '@/data/voicesByLanguage';
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [selectedVoice, setSelectedVoice] = useState<string>('spPXlKT5a4JMfbhPRAzA');
+  const { language, setLanguage, t } = useLanguage();
+  
+  const availableVoices = getVoicesForLanguage(language);
+  const defaultVoice = getDefaultVoiceForLanguage(language);
+  
+  const [selectedVoice, setSelectedVoice] = useState<string>(defaultVoice);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
@@ -36,15 +30,17 @@ export default function Settings() {
     if (saved && validVoiceIds.includes(saved)) {
       setSelectedVoice(saved);
     } else {
-      // Reset to default if saved voice no longer exists
-      localStorage.setItem(VOICE_STORAGE_KEY, 'spPXlKT5a4JMfbhPRAzA');
+      // Reset to default for current language if saved voice doesn't exist
+      const newDefault = getDefaultVoiceForLanguage(language);
+      setSelectedVoice(newDefault);
+      localStorage.setItem(VOICE_STORAGE_KEY, newDefault);
     }
-  }, []);
+  }, [language]);
 
   const handleSelectVoice = (voiceId: string) => {
     setSelectedVoice(voiceId);
     localStorage.setItem(VOICE_STORAGE_KEY, voiceId);
-    toast.success('Voz guardada');
+    toast.success(t.settings.voiceSaved);
   };
 
   const handlePreview = async (voice: Voice) => {
@@ -57,16 +53,20 @@ export default function Settings() {
     setPreviewLoading(voice.id);
 
     try {
+      const previewText = language === 'es' 
+        ? 'Inhala profundamente y siente la calma.'
+        : 'Breathe in deeply and feel the calm.';
+
       const response = await supabase.functions.invoke('generate-breath-guide', {
         body: {
-          text: 'Inhala profundamente y siente la calma.',
-          phraseKey: `preview_${voice.id}`,
+          text: previewText,
+          phraseKey: `preview_${voice.id}_${language}`,
           voiceId: voice.id,
         },
       });
 
       if (response.error || !response.data?.audioUrl) {
-        throw new Error('Error al generar preview');
+        throw new Error('Error generating preview');
       }
 
       const audio = new Audio(response.data.audioUrl);
@@ -75,10 +75,18 @@ export default function Settings() {
       await audio.play();
     } catch (error) {
       console.error('Preview error:', error);
-      toast.error('No se pudo reproducir la vista previa');
+      toast.error(t.settings.previewError);
     } finally {
       setPreviewLoading(null);
     }
+  };
+
+  const handleLanguageChange = (newLang: Language) => {
+    setLanguage(newLang);
+    // Reset voice to default for new language
+    const newDefault = getDefaultVoiceForLanguage(newLang);
+    setSelectedVoice(newDefault);
+    localStorage.setItem(VOICE_STORAGE_KEY, newDefault);
   };
 
   return (
@@ -92,14 +100,48 @@ export default function Settings() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-semibold text-foreground">Configuración</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t.settings.title}</h1>
         </header>
 
+        {/* Language Section */}
+        <section className="space-y-6 mb-8">
+          <div>
+            <h2 className="text-lg font-medium text-foreground mb-2">{t.settings.language}</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t.settings.languageDescription}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {(['es', 'en'] as Language[]).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => handleLanguageChange(lang)}
+                className={cn(
+                  "flex items-center justify-center gap-2 p-4 rounded-xl border transition-all",
+                  language === lang
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-card hover:border-primary/50"
+                )}
+              >
+                <Globe className="h-5 w-5" />
+                <span className="font-medium">
+                  {lang === 'es' ? 'Español' : 'English'}
+                </span>
+                {language === lang && (
+                  <Check className="h-4 w-4 text-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Voice Section */}
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-medium text-foreground mb-2">Voz de la guía</h2>
+            <h2 className="text-lg font-medium text-foreground mb-2">{t.settings.voiceGuide}</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Elige la voz que te acompañará en tus ejercicios de respiración
+              {t.settings.voiceDescription}
             </p>
           </div>
 
@@ -131,7 +173,7 @@ export default function Settings() {
                     </div>
                     <div>
                       <p className="font-medium text-foreground">{voice.name}</p>
-                      <p className="text-sm text-muted-foreground">{voice.description}</p>
+                      <p className="text-sm text-muted-foreground">{voice.description[language]}</p>
                     </div>
                   </div>
                 </button>

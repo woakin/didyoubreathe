@@ -6,34 +6,49 @@ import { BreathingCircle } from '@/components/BreathingCircle';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getTechniqueById } from '@/data/techniques';
+import { getVoicesForLanguage, getDefaultVoiceForLanguage } from '@/data/voicesByLanguage';
 import { useVoiceGuideV2 } from '@/hooks/useVoiceGuideV2';
 import { useAudioDrivenSession } from '@/hooks/useAudioDrivenSession';
 import { useBreathingSession } from '@/hooks/useBreathingSession';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
-const DEFAULT_VOICE_ID = 'spPXlKT5a4JMfbhPRAzA';
-
-const availableVoices = [
-  { id: 'spPXlKT5a4JMfbhPRAzA', name: 'Camila' },
-  { id: 'rixsIpPlTphvsJd2mI03', name: 'Isabel' },
-];
 
 export default function BreatheV2() {
   const { techniqueId } = useParams<{ techniqueId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { language, t } = useLanguage();
+  
+  const availableVoices = getVoicesForLanguage(language);
+  const defaultVoice = getDefaultVoiceForLanguage(language);
+  
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(VOICE_STORAGE_KEY) || DEFAULT_VOICE_ID;
+      const saved = localStorage.getItem(VOICE_STORAGE_KEY);
+      const validIds = availableVoices.map(v => v.id);
+      if (saved && validIds.includes(saved)) {
+        return saved;
+      }
     }
-    return DEFAULT_VOICE_ID;
+    return defaultVoice;
   });
+
+  // Update voice when language changes
+  useEffect(() => {
+    const saved = localStorage.getItem(VOICE_STORAGE_KEY);
+    const validIds = availableVoices.map(v => v.id);
+    if (!saved || !validIds.includes(saved)) {
+      setSelectedVoice(defaultVoice);
+      localStorage.setItem(VOICE_STORAGE_KEY, defaultVoice);
+    }
+  }, [language, availableVoices, defaultVoice]);
 
   const handleVoiceChange = useCallback((voiceId: string) => {
     setSelectedVoice(voiceId);
@@ -41,8 +56,8 @@ export default function BreatheV2() {
   }, []);
 
   const technique = useMemo(() => {
-    return getTechniqueById(techniqueId || '');
-  }, [techniqueId]);
+    return getTechniqueById(techniqueId || '', language);
+  }, [techniqueId, language]);
 
   // Voice guide with timestamps
   const voiceGuide = useVoiceGuideV2({
@@ -98,15 +113,15 @@ export default function BreatheV2() {
             .eq('user_id', user.id);
 
           if (newStreak > streakData.current_streak) {
-            toast.success(`🔥 ¡Racha de ${newStreak} días!`);
+            toast.success(t.breathe.streakMessage.replace('{count}', String(newStreak)));
           }
         }
 
-        toast.success('Sesión completada. ¡Bien hecho!');
+        toast.success(t.breathe.sessionComplete);
       } catch (error) {
         console.error('Error saving session:', error);
       }
-    }, [user, technique, voiceGuide.timestamps]),
+    }, [user, technique, voiceGuide.timestamps, t]),
   });
 
   // Fallback timer-driven session (when voice is disabled)
@@ -125,11 +140,11 @@ export default function BreatheV2() {
           technique: technique.id,
           duration_seconds: duration,
         });
-        toast.success('Sesión completada. ¡Bien hecho!');
+        toast.success(t.breathe.sessionComplete);
       } catch (error) {
         console.error('Error saving session:', error);
       }
-    }, [user, technique]),
+    }, [user, technique, t]),
   });
 
   // Determine which session to use
@@ -155,7 +170,7 @@ export default function BreatheV2() {
 
     if (voiceEnabled) {
       if (!voiceGuide.isReady && !voiceGuide.isLoading) {
-        toast.loading('Preparando guía de voz...', { id: 'voice-loading' });
+        toast.loading(t.breathe.loadingVoice, { id: 'voice-loading' });
         const loaded = await voiceGuide.preloadAudio();
         toast.dismiss('voice-loading');
 
@@ -171,7 +186,7 @@ export default function BreatheV2() {
     } else {
       timerSession.start();
     }
-  }, [voiceGuide, voiceEnabled, timerSession]);
+  }, [voiceGuide, voiceEnabled, timerSession, t]);
 
   const handlePause = useCallback(() => {
     if (isAudioDriven) {
@@ -200,9 +215,9 @@ export default function BreatheV2() {
       <MainLayout>
         <PageTransition className="flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground">Técnica no encontrada</p>
+            <p className="text-muted-foreground">{t.breathe.techniqueNotFound}</p>
             <Button variant="link" onClick={() => navigate('/techniques')}>
-              Volver a técnicas
+              {t.breathe.backToTechniques}
             </Button>
           </div>
         </PageTransition>
@@ -246,10 +261,12 @@ export default function BreatheV2() {
             <h1 className="font-semibold text-foreground">{technique.name}</h1>
             <p className="text-xs text-muted-foreground">
               {currentPhase === 'prepare' 
-                ? 'Preparación...' 
+                ? t.breathe.preparation
                 : isAudioDriven 
-                  ? 'Sigue la guía de voz'
-                  : `Ciclo ${timerSession.state.currentCycle} de ${timerSession.state.totalCycles}`}
+                  ? t.breathe.followVoice
+                  : t.breathe.cycleOf
+                      .replace('{current}', String(timerSession.state.currentCycle))
+                      .replace('{total}', String(timerSession.state.totalCycles))}
             </p>
           </div>
           
@@ -280,15 +297,15 @@ export default function BreatheV2() {
           {/* Pattern display */}
           {!isActive && (
             <div className="mt-8 text-center animate-fade-in">
-              <p className="text-sm text-muted-foreground mb-2">Patrón de respiración</p>
+              <p className="text-sm text-muted-foreground mb-2">{t.breathe.pattern}</p>
               <div className="flex items-center gap-2 text-foreground font-medium">
-                <span className="text-breath-inhale">{technique.pattern.inhale}s inhala</span>
+                <span className="text-breath-inhale">{technique.pattern.inhale}s {t.breathe.inhale}</span>
                 {technique.pattern.holdIn > 0 && (
-                  <span className="text-breath-hold">• {technique.pattern.holdIn}s mantén</span>
+                  <span className="text-breath-hold">• {technique.pattern.holdIn}s {t.breathe.hold}</span>
                 )}
-                <span className="text-breath-exhale">• {technique.pattern.exhale}s exhala</span>
+                <span className="text-breath-exhale">• {technique.pattern.exhale}s {t.breathe.exhale}</span>
                 {technique.pattern.holdOut > 0 && (
-                  <span className="text-muted-foreground">• {technique.pattern.holdOut}s pausa</span>
+                  <span className="text-muted-foreground">• {technique.pattern.holdOut}s {t.breathe.pause}</span>
                 )}
               </div>
             </div>
@@ -346,12 +363,12 @@ export default function BreatheV2() {
                 {voiceGuide.isLoading ? (
                   <>
                     <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Cargando...
+                    {t.common.loading}
                   </>
                 ) : (
                   <>
                     <Play className="h-5 w-5 mr-2" />
-                    Comenzar
+                    {t.breathe.start}
                   </>
                 )}
               </Button>
@@ -364,14 +381,14 @@ export default function BreatheV2() {
                   className="h-14"
                 >
                   <RotateCcw className="h-5 w-5 mr-2" />
-                  Repetir
+                  {t.breathe.repeat}
                 </Button>
                 <Button
                   size="lg"
                   onClick={() => navigate('/techniques')}
                   className="h-14"
                 >
-                  Continuar
+                  {t.common.continue}
                 </Button>
               </>
             ) : (
@@ -393,12 +410,12 @@ export default function BreatheV2() {
                   {isPaused ? (
                     <>
                       <Play className="h-5 w-5 mr-2" />
-                      Continuar
+                      {t.breathe.resume}
                     </>
                   ) : (
                     <>
                       <Pause className="h-5 w-5 mr-2" />
-                      Pausar
+                      {t.breathe.pauseBtn}
                     </>
                   )}
                 </Button>
