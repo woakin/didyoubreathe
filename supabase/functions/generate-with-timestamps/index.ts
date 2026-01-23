@@ -13,147 +13,408 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // Default voice for meditation
 const DEFAULT_VOICE_ID = "spPXlKT5a4JMfbhPRAzA"; // Camila
 
-// Simplified scripts without SSML breaks - natural punctuation for rhythm
+// Scripts with SSML <break> tags for precise 1-second pauses between counts
+// Using eleven_turbo_v2_5 which has stable SSML support
 const breathingScriptsV2: Record<string, string> = {
   diaphragmatic: `Bienvenido a la respiración diafragmática.
+
 Encuentra una posición cómoda. Coloca una mano sobre tu abdomen.
+
+<break time="2.0s"/>
 
 Vamos a comenzar.
 
-Inhala profundamente, dos, tres, cuatro.
-Exhala lentamente, dos, tres, cuatro, cinco, seis.
+<break time="1.5s"/>
 
-Inhala, dos, tres, cuatro.
-Exhala, dos, tres, cuatro, cinco, seis.
+Inhala profundamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala, dos, tres, cuatro.
-Exhala, dos, tres, cuatro, cinco, seis.
+<break time="0.5s"/>
 
-Inhala, dos, tres, cuatro.
-Exhala, dos, tres, cuatro, cinco, seis.
+Exhala lentamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.
 
-Inhala, dos, tres, cuatro.
-Exhala, dos, tres, cuatro, cinco, seis.
+<break time="1.0s"/>
 
-Inhala, dos, tres, cuatro.
-Exhala, dos, tres, cuatro, cinco, seis.
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala, dos, tres, cuatro.
-Exhala, dos, tres, cuatro, cinco, seis.
+<break time="0.5s"/>
 
-Inhala profundamente, dos, tres, cuatro.
-Exhala completamente, dos, tres, cuatro, cinco, seis.`,
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.
+
+<break time="1.0s"/>
+
+Inhala profundamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala completamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis.`,
 
   "box-breathing": `Bienvenido a Box Breathing.
+
 Esta técnica te ayudará a encontrar enfoque y claridad.
+
+<break time="2.0s"/>
 
 Prepárate para comenzar.
 
-Inhala, dos, tres, cuatro.
-Mantén el aire, dos, tres, cuatro.
-Exhala, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="1.5s"/>
 
-Inhala, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="0.5s"/>
 
-Inhala, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+Mantén el aire <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="0.5s"/>
 
-Inhala profundamente, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala completamente, dos, tres, cuatro.
-Pausa final, dos, tres, cuatro.`,
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-  "4-7-8": `Bienvenido a la técnica cuatro, siete, ocho.
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala profundamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala completamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa final <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.`,
+
+  "4-7-8": `Bienvenido a la técnica cuatro siete ocho.
+
 Esta práctica te preparará para un descanso profundo.
+
+<break time="2.0s"/>
 
 Relaja los hombros y cierra los ojos.
 
-Inhala por la nariz, dos, tres, cuatro.
-Mantén el aire, dos, tres, cuatro, cinco, seis, siete.
-Exhala por la boca, dos, tres, cuatro, cinco, seis, siete, ocho.
+<break time="1.5s"/>
 
-Inhala, dos, tres, cuatro.
-Mantén, dos, tres, cuatro, cinco, seis, siete.
-Exhala lentamente, dos, tres, cuatro, cinco, seis, siete, ocho.
+Inhala por la nariz <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala, dos, tres, cuatro.
-Mantén, dos, tres, cuatro, cinco, seis, siete.
-Exhala, dos, tres, cuatro, cinco, seis, siete, ocho.
+<break time="0.5s"/>
 
-Inhala profundamente, dos, tres, cuatro.
-Mantén, dos, tres, cuatro, cinco, seis, siete.
-Exhala completamente, dos, tres, cuatro, cinco, seis, siete, ocho.`,
+Mantén el aire <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete.
+
+<break time="0.5s"/>
+
+Exhala por la boca <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete <break time="1.0s"/> ocho.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete.
+
+<break time="0.5s"/>
+
+Exhala lentamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete <break time="1.0s"/> ocho.
+
+<break time="1.0s"/>
+
+Inhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete.
+
+<break time="0.5s"/>
+
+Exhala <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete <break time="1.0s"/> ocho.
+
+<break time="1.0s"/>
+
+Inhala profundamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete.
+
+<break time="0.5s"/>
+
+Exhala completamente <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro <break time="1.0s"/> cinco <break time="1.0s"/> seis <break time="1.0s"/> siete <break time="1.0s"/> ocho.`,
 
   "nadi-shodhana": `Bienvenido a Nadi Shodhana, la respiración alterna.
+
 Usa tu pulgar derecho para cerrar la fosa nasal derecha.
+
+<break time="2.0s"/>
 
 Vamos a equilibrar tu energía.
 
-Inhala por la fosa izquierda, dos, tres, cuatro.
-Cierra ambas fosas y mantén, dos, tres, cuatro.
-Exhala por la derecha, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="1.5s"/>
 
-Inhala por la derecha, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la izquierda, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+Inhala por la fosa izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala por la izquierda, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la derecha, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="0.5s"/>
 
-Inhala por la derecha, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la izquierda, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+Cierra ambas fosas y mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala por la izquierda, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la derecha, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="0.5s"/>
 
-Inhala por la derecha, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la izquierda, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+Exhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala por la izquierda, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la derecha, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="0.5s"/>
 
-Inhala por la derecha, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la izquierda, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
 
-Inhala por la izquierda, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la derecha, dos, tres, cuatro.
-Pausa, dos, tres, cuatro.
+<break time="1.0s"/>
 
-Inhala por la derecha, dos, tres, cuatro.
-Mantén, dos, tres, cuatro.
-Exhala por la izquierda, dos, tres, cuatro.
-Pausa final, dos, tres, cuatro.`,
+Inhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="1.0s"/>
+
+Inhala por la derecha <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Mantén <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Exhala por la izquierda <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.
+
+<break time="0.5s"/>
+
+Pausa final <break time="1.0s"/> dos <break time="1.0s"/> tres <break time="1.0s"/> cuatro.`,
 };
 
 // Phase keywords mapping
@@ -344,13 +605,13 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           text: script,
-          model_id: "eleven_multilingual_v2",
+          model_id: "eleven_turbo_v2_5", // Turbo v2.5 has stable SSML <break> support
           voice_settings: {
-            stability: 0.85,
-            similarity_boost: 0.75,
+            stability: 0.5,
+            similarity_boost: 0.80,
             style: 0.0,
             use_speaker_boost: true,
-            speed: 0.8, // Slower for meditation
+            speed: 0.85, // Slightly slower for meditation
           },
         }),
       }
