@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { TechniqueCard } from '@/components/TechniqueCard';
@@ -8,12 +8,30 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n';
 import { User, LogOut, Flame, Globe } from 'lucide-react';
 
+interface LocationState {
+  recommendedTechnique?: string;
+  moodScore?: number;
+}
+
 export default function Techniques() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
 
+  // Get recommendation from mood check
+  const { recommendedTechnique } = (location.state as LocationState) || {};
+
   const techniques = getBreathingTechniques(language);
+
+  // Sort techniques to show recommended first if available
+  const sortedTechniques = recommendedTechnique
+    ? [...techniques].sort((a, b) => {
+        if (a.id === recommendedTechnique) return -1;
+        if (b.id === recommendedTechnique) return 1;
+        return 0;
+      })
+    : techniques;
 
   const toggleLanguage = () => {
     setLanguage(language === 'es' ? 'en' : 'es');
@@ -82,12 +100,13 @@ export default function Techniques() {
 
         {/* Techniques Grid */}
         <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
-          {techniques.map((technique, index) => (
+          {sortedTechniques.map((technique, index) => (
             <TechniqueCard
               key={technique.id}
               technique={technique}
               onClick={() => handleTechniqueSelect(technique.id)}
               index={index}
+              isRecommended={technique.id === recommendedTechnique}
             />
           ))}
         </div>

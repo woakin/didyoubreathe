@@ -1,7 +1,7 @@
 import { BreathingTechnique } from '@/types/breathing';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, BarChart2 } from 'lucide-react';
+import { Clock, BarChart2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/i18n';
 
@@ -9,21 +9,36 @@ interface TechniqueCardProps {
   technique: BreathingTechnique;
   onClick: () => void;
   index: number;
+  isRecommended?: boolean;
 }
 
-export function TechniqueCard({ technique, onClick, index }: TechniqueCardProps) {
+export function TechniqueCard({ technique, onClick, index, isRecommended = false }: TechniqueCardProps) {
   const { t } = useLanguage();
 
   return (
     <Card
       onClick={onClick}
       className={cn(
-        'cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg',
+        'cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative',
         'bg-card/80 backdrop-blur-sm border-border/50',
-        'animate-fade-in-up'
+        'animate-fade-in-up',
+        isRecommended && 'ring-2 ring-primary/50 shadow-lg shadow-primary/10'
       )}
       style={{ animationDelay: `${index * 100}ms` }}
     >
+      {/* Recommended Badge */}
+      {isRecommended && (
+        <div className="absolute -top-2 -right-2 z-10">
+          <Badge 
+            variant="default" 
+            className="bg-primary text-primary-foreground text-xs px-2 py-0.5 flex items-center gap-1 shadow-md"
+          >
+            <Sparkles className="h-3 w-3" />
+            {t.moodCheck.recommended}
+          </Badge>
+        </div>
+      )}
+
       <CardHeader className="pb-2 sm:pb-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-2">
           <div className="flex-1 min-w-0">

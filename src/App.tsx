@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/i18n";
 import Onboarding from "./pages/Onboarding";
+import MoodCheck from "./pages/MoodCheck";
 import Techniques from "./pages/Techniques";
 import BreatheV2 from "./pages/BreatheV2";
 import Auth from "./pages/Auth";
@@ -26,6 +27,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Onboarding />} />
+              <Route path="/mood-check" element={<MoodCheck />} />
               <Route path="/techniques" element={<Techniques />} />
               <Route path="/breathe/:techniqueId" element={<BreatheV2 />} />
               <Route path="/auth" element={<Auth />} />

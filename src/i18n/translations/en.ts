@@ -16,6 +16,15 @@ export const en: Translations = {
     skipIntro: 'Skip introduction',
     continueToApp: 'Continue to App',
   },
+  moodCheck: {
+    title: 'How are you feeling right now?',
+    subtitle: 'This helps us recommend the ideal practice for you',
+    anxious: 'Anxious',
+    calm: 'Calm',
+    findPractice: 'Find my practice',
+    skip: 'Choose on my own',
+    recommended: 'Recommended for you',
+  },
   techniques: {
     title: 'Choose your practice',
     subtitle: 'Select a technique to begin',
