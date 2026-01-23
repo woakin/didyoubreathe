@@ -97,7 +97,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      handle_auth_email_hook: { Args: { payload: Json }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
