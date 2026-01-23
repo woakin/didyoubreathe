@@ -27,7 +27,7 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-between px-6 py-10 animate-fade-in">
       {/* Logo / Título */}
       <header className="text-center space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-2xl font-light tracking-wide text-foreground/90">
           Did You Breathe?
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -53,6 +53,11 @@ export default function Onboarding() {
               onClick={handlePlay}
               className="absolute inset-0 flex flex-col items-center justify-center bg-foreground/30 backdrop-blur-[2px] cursor-pointer group"
             >
+              {/* Indicador de duración integrado */}
+              <span className="absolute bottom-4 right-4 text-xs text-white/80 bg-black/40 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                30s
+              </span>
+              
               <div className="w-20 h-20 flex items-center justify-center rounded-full bg-primary shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <Play className="w-9 h-9 text-primary-foreground fill-primary-foreground ml-1" />
               </div>
@@ -63,12 +68,6 @@ export default function Onboarding() {
           )}
         </div>
 
-        {/* Indicador de duración */}
-        <div className="flex items-center gap-3 text-muted-foreground text-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-          <span>30 segundos de introducción</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-        </div>
       </div>
 
       {/* CTAs */}
