@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { Button } from '@/components/ui/button';
@@ -7,40 +7,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BreathingOrb } from '@/components/ui/BreathingOrb';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function UpdatePassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  const token = searchParams.get('token');
+
   useEffect(() => {
-    // Check if we have a valid recovery session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setSessionReady(true);
-      }
-    };
-
-    // Listen for auth state changes (recovery link creates a session)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'PASSWORD_RECOVERY' || session) {
-          setSessionReady(true);
-        }
-      }
-    );
-
-    checkSession();
-
-    return () => subscription.unsubscribe();
-  }, []);
+    if (!token) {
+      setTokenError('No se encontró el enlace de recuperación. Solicita uno nuevo.');
+    }
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,14 +40,33 @@ export default function UpdatePassword() {
       return;
     }
 
+    if (!token) {
+      toast.error('Token de recuperación no válido');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) {
-        toast.error(error.message);
-        return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-reset-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            token,
+            newPassword: password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al actualizar la contraseña');
       }
 
       setSuccess(true);
@@ -70,16 +74,19 @@ export default function UpdatePassword() {
       
       // Redirect after 2 seconds
       setTimeout(() => {
-        navigate('/techniques');
+        navigate('/auth');
       }, 2000);
     } catch (error: any) {
-      toast.error('Error al actualizar la contraseña');
+      toast.error(error.message || 'Error al actualizar la contraseña');
+      if (error.message.includes('expired') || error.message.includes('Invalid')) {
+        setTokenError(error.message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (!sessionReady) {
+  if (tokenError) {
     return (
       <MainLayout>
         <PageTransition className="flex flex-col items-center justify-center min-h-screen px-6 py-12">
@@ -88,8 +95,12 @@ export default function UpdatePassword() {
           </div>
           <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-border/50">
             <CardContent className="pt-6 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-muted-foreground">Verificando enlace de recuperación...</p>
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Enlace no válido</h2>
+              <p className="text-muted-foreground mb-4">{tokenError}</p>
+              <Button onClick={() => navigate('/auth')} className="w-full">
+                Volver a iniciar sesión
+              </Button>
             </CardContent>
           </Card>
         </PageTransition>
@@ -105,11 +116,11 @@ export default function UpdatePassword() {
             <BreathingOrb size="sm" />
           </div>
           <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-border/50">
-          <CardContent className="pt-6 text-center">
+            <CardContent className="pt-6 text-center">
               <CheckCircle className="h-12 w-12 text-primary mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">¡Listo!</h2>
               <p className="text-muted-foreground">Tu contraseña ha sido actualizada.</p>
-              <p className="text-sm text-muted-foreground mt-2">Redirigiendo...</p>
+              <p className="text-sm text-muted-foreground mt-2">Redirigiendo al inicio de sesión...</p>
             </CardContent>
           </Card>
         </PageTransition>
