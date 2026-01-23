@@ -5,7 +5,7 @@ import { TechniqueCard } from '@/components/TechniqueCard';
 import { Button } from '@/components/ui/button';
 import { breathingTechniques } from '@/data/techniques';
 import { useAuth } from '@/hooks/useAuth';
-import { User, LogOut, Flame, Settings } from 'lucide-react';
+import { User, LogOut, Flame } from 'lucide-react';
 
 export default function Techniques() {
   const navigate = useNavigate();
@@ -30,13 +30,6 @@ export default function Techniques() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => navigate('/settings')}
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
             {user ? (
               <>
                 <Button 
