@@ -299,12 +299,18 @@ const handler = async (req: Request): Promise<Response> => {
           console.error(`Error fetching streak for user ${user.id}:`, streakError);
         }
 
-        // Get display name from profile
+        // Get display name and email preference from profile
         const { data: profileData } = await supabaseAdmin
           .from("profiles")
-          .select("display_name")
+          .select("display_name, weekly_email_enabled")
           .eq("user_id", user.id)
           .maybeSingle();
+
+        // Skip user if weekly emails are disabled
+        if (profileData?.weekly_email_enabled === false) {
+          console.log(`Skipping user ${user.id} - weekly emails disabled`);
+          continue;
+        }
 
         const displayName = profileData?.display_name || user.user_metadata?.name || user.email.split("@")[0];
         const hasActivity = sessions && sessions.length > 0;

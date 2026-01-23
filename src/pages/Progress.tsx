@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Flame, Clock, Calendar, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Flame, Clock, Calendar, TrendingUp, Mail } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 interface StreakData {
   current_streak: number;
@@ -30,6 +32,8 @@ export default function Progress() {
     thisWeekSessions: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [weeklyEmailEnabled, setWeeklyEmailEnabled] = useState(true);
+  const [savingPreference, setSavingPreference] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -46,15 +50,26 @@ export default function Progress() {
     if (!user) return;
 
     try {
-      // Fetch streak data
-      const { data: streakData } = await supabase
-        .from('daily_streaks')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Fetch streak data and profile in parallel
+      const [streakResult, profileResult] = await Promise.all([
+        supabase
+          .from('daily_streaks')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('weekly_email_enabled')
+          .eq('user_id', user.id)
+          .maybeSingle()
+      ]);
 
-      if (streakData) {
-        setStreak(streakData);
+      if (streakResult.data) {
+        setStreak(streakResult.data);
+      }
+
+      if (profileResult.data) {
+        setWeeklyEmailEnabled(profileResult.data.weekly_email_enabled ?? true);
       }
 
       // Fetch session stats
@@ -179,6 +194,46 @@ export default function Progress() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Email Preferences */}
+        <Card className="mb-6 animate-fade-in-up delay-350">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Resumen semanal
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Recibe tu progreso cada lunes
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={weeklyEmailEnabled}
+                onCheckedChange={async () => {
+                  setSavingPreference(true);
+                  const newValue = !weeklyEmailEnabled;
+                  
+                  const { error } = await supabase
+                    .from('profiles')
+                    .update({ weekly_email_enabled: newValue })
+                    .eq('user_id', user!.id);
+                  
+                  if (error) {
+                    toast.error('Error al guardar preferencia');
+                  } else {
+                    setWeeklyEmailEnabled(newValue);
+                    toast.success(newValue ? 'Emails semanales activados' : 'Emails semanales desactivados');
+                  }
+                  setSavingPreference(false);
+                }}
+                disabled={savingPreference}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* CTA */}
         <Button
