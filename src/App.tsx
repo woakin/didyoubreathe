@@ -8,6 +8,7 @@ import Onboarding from "./pages/Onboarding";
 import Techniques from "./pages/Techniques";
 import BreatheV2 from "./pages/BreatheV2";
 import Auth from "./pages/Auth";
+import UpdatePassword from "./pages/UpdatePassword";
 import Progress from "./pages/Progress";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/techniques" element={<Techniques />} />
             <Route path="/breathe/:techniqueId" element={<BreatheV2 />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
