@@ -5,6 +5,7 @@ import { AudioTimestamps } from '@/types/breathing';
 interface UseVoiceGuideV2Props {
   techniqueId: string;
   enabled: boolean;
+  voiceId?: string;
 }
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
@@ -17,7 +18,7 @@ const getSelectedVoice = (): string => {
   return DEFAULT_VOICE_ID;
 };
 
-export function useVoiceGuideV2({ techniqueId, enabled }: UseVoiceGuideV2Props) {
+export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuideV2Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,10 +39,10 @@ export function useVoiceGuideV2({ techniqueId, enabled }: UseVoiceGuideV2Props) 
     setError(null);
 
     try {
-      const voiceId = getSelectedVoice();
+      const effectiveVoiceId = voiceId || getSelectedVoice();
 
       const response = await supabase.functions.invoke('generate-with-timestamps', {
-        body: { techniqueId, voiceId },
+        body: { techniqueId, voiceId: effectiveVoiceId },
       });
 
       if (response.error) {
@@ -78,7 +79,7 @@ export function useVoiceGuideV2({ techniqueId, enabled }: UseVoiceGuideV2Props) 
     } finally {
       setIsLoading(false);
     }
-  }, [enabled, techniqueId]);
+  }, [enabled, techniqueId, voiceId]);
 
   const play = useCallback(() => {
     if (!enabled || !hasUserInteracted.current || !audioRef.current) return;

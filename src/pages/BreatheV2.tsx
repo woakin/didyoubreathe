@@ -4,6 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { BreathingCircle } from '@/components/BreathingCircle';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getTechniqueById } from '@/data/techniques';
 import { useVoiceGuideV2 } from '@/hooks/useVoiceGuideV2';
 import { useAudioDrivenSession } from '@/hooks/useAudioDrivenSession';
@@ -12,12 +13,32 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+const VOICE_STORAGE_KEY = 'breathe-voice-preference';
+const DEFAULT_VOICE_ID = 'spPXlKT5a4JMfbhPRAzA';
+
+const availableVoices = [
+  { id: 'spPXlKT5a4JMfbhPRAzA', name: 'Camila' },
+  { id: 'rixsIpPlTphvsJd2mI03', name: 'Isabel' },
+];
 
 export default function BreatheV2() {
   const { techniqueId } = useParams<{ techniqueId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [selectedVoice, setSelectedVoice] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(VOICE_STORAGE_KEY) || DEFAULT_VOICE_ID;
+    }
+    return DEFAULT_VOICE_ID;
+  });
+
+  const handleVoiceChange = useCallback((voiceId: string) => {
+    setSelectedVoice(voiceId);
+    localStorage.setItem(VOICE_STORAGE_KEY, voiceId);
+  }, []);
 
   const technique = useMemo(() => {
     return getTechniqueById(techniqueId || '');
@@ -27,6 +48,7 @@ export default function BreatheV2() {
   const voiceGuide = useVoiceGuideV2({
     techniqueId: techniqueId || '',
     enabled: voiceEnabled,
+    voiceId: selectedVoice,
   });
 
   // Audio-driven session (when voice is enabled)
@@ -275,26 +297,43 @@ export default function BreatheV2() {
 
         {/* Controls */}
         <div className="flex flex-col items-center gap-4 py-8 animate-fade-in">
-          {/* Voice toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setVoiceEnabled(!voiceEnabled)}
-            disabled={isActive}
-            className="text-muted-foreground"
-          >
-            {voiceEnabled ? (
-              <>
-                <Volume2 className="h-4 w-4 mr-2" />
-                Guía de voz activada
-              </>
-            ) : (
-              <>
-                <VolumeX className="h-4 w-4 mr-2" />
-                Guía de voz desactivada
-              </>
-            )}
-          </Button>
+          {/* Voice toggle + selector */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              disabled={isActive}
+              className={cn(
+                "h-9 w-9",
+                voiceEnabled ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
+            
+            <Select
+              value={selectedVoice}
+              onValueChange={handleVoiceChange}
+              disabled={isActive}
+            >
+              <SelectTrigger 
+                className={cn(
+                  "w-24 h-9 border-none bg-transparent text-sm focus:ring-0 focus:ring-offset-0",
+                  !voiceEnabled && "opacity-50"
+                )}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableVoices.map((voice) => (
+                  <SelectItem key={voice.id} value={voice.id}>
+                    {voice.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex items-center justify-center gap-4">
             {!isActive ? (
