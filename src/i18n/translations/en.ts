@@ -102,6 +102,19 @@ export const en: Translations = {
     previewError: 'Could not play preview',
     language: 'Language',
     languageDescription: 'Select the application language',
+    previewVoice: 'Preview voice',
+  },
+  profile: {
+    title: 'Profile',
+    memberSince: 'Member since',
+    statistics: 'Statistics',
+    totalSessions: 'Total sessions',
+    totalTime: 'Total time',
+    currentStreak: 'Current streak',
+    account: 'Account',
+    changePassword: 'Change password',
+    signOutConfirm: 'Sign out?',
+    signOutDescription: 'You can sign back in anytime.',
   },
   techniques_data: {
     diaphragmatic: {

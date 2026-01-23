@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Volume2, Check, Loader2, Globe } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowLeft, Play, Check, Loader2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -178,19 +179,26 @@ export default function Settings() {
                   </div>
                 </button>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handlePreview(voice)}
-                  disabled={previewLoading !== null}
-                  className="shrink-0"
-                >
-                  {previewLoading === voice.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Volume2 className="h-4 w-4" />
-                  )}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePreview(voice)}
+                      disabled={previewLoading !== null}
+                      className="shrink-0 border-primary/30 hover:border-primary hover:bg-primary/10"
+                    >
+                      {previewLoading === voice.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {t.settings.previewVoice}
+                  </TooltipContent>
+                </Tooltip>
               </div>
             ))}
           </div>

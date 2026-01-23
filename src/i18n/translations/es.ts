@@ -100,6 +100,19 @@ export const es = {
     previewError: 'No se pudo reproducir la vista previa',
     language: 'Idioma',
     languageDescription: 'Selecciona el idioma de la aplicación',
+    previewVoice: 'Escuchar voz',
+  },
+  profile: {
+    title: 'Perfil',
+    memberSince: 'Miembro desde',
+    statistics: 'Estadísticas',
+    totalSessions: 'Sesiones totales',
+    totalTime: 'Tiempo total',
+    currentStreak: 'Racha actual',
+    account: 'Cuenta',
+    changePassword: 'Cambiar contraseña',
+    signOutConfirm: '¿Seguro que quieres cerrar sesión?',
+    signOutDescription: 'Podrás volver a iniciar sesión en cualquier momento.',
   },
   techniques_data: {
     diaphragmatic: {
