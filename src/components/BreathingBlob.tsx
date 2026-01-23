@@ -10,6 +10,7 @@ interface BreathingBlobProps {
   currentCount?: number;
   phaseTimeRemaining?: number;
   phaseDuration?: number;
+  hideText?: boolean;
 }
 
 const phaseLabels: Record<BreathPhase, { en: string; es: string }> = {
@@ -30,6 +31,7 @@ export function BreathingBlob({
   currentCount,
   phaseTimeRemaining,
   phaseDuration,
+  hideText = false,
 }: BreathingBlobProps) {
   // Determine if audio-driven or timer-driven
   const isAudioDriven = currentCount !== undefined;
@@ -251,29 +253,31 @@ export function BreathingBlob({
       />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center">
-        <span className="text-2xl font-semibold text-foreground mb-1">
-          {label}
-        </span>
-        
-        {isActive && phase === 'prepare' && (
-          <span className="text-sm text-foreground/70 animate-pulse">
-            {lang === 'en' ? 'Find a comfortable position' : 'Encuentra una posición cómoda'}
+      {!hideText && (
+        <div className="relative z-10 flex flex-col items-center justify-center text-center">
+          <span className="text-2xl font-semibold text-foreground mb-1">
+            {label}
           </span>
-        )}
-        
-        {isActive && phase !== 'complete' && phase !== 'prepare' && displayCount !== null && (
-          <span className="text-5xl font-light text-foreground/90 tabular-nums">
-            {displayCount}
-          </span>
-        )}
-        
-        {phase === 'complete' && (
-          <span className="text-lg text-foreground/80">
-            {lang === 'en' ? 'Well done 🌿' : 'Bien hecho 🌿'}
-          </span>
-        )}
-      </div>
+          
+          {isActive && phase === 'prepare' && (
+            <span className="text-sm text-foreground/70 animate-pulse">
+              {lang === 'en' ? 'Find a comfortable position' : 'Encuentra una posición cómoda'}
+            </span>
+          )}
+          
+          {isActive && phase !== 'complete' && phase !== 'prepare' && displayCount !== null && (
+            <span className="text-5xl font-light text-foreground/90 tabular-nums">
+              {displayCount}
+            </span>
+          )}
+          
+          {phase === 'complete' && (
+            <span className="text-lg text-foreground/80">
+              {lang === 'en' ? 'Well done 🌿' : 'Bien hecho 🌿'}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

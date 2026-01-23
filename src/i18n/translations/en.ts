@@ -86,6 +86,13 @@ export const en: Translations = {
     streakMessage: '🔥 {count} day streak!',
     loadingVoice: 'Preparing voice guide...',
     preparing: 'Preparing...',
+    zenMode: 'Zen Mode',
+    exitZen: 'Exit Zen Mode',
+    ambientSounds: 'Ambient sounds',
+    rain: 'Rain',
+    forest: 'Forest',
+    waves: 'Ocean waves',
+    noAmbient: 'No sound',
   },
   sessionComplete: {
     title: 'Session Complete',
