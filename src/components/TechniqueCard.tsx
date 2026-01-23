@@ -70,7 +70,7 @@ export function TechniqueCard({
 
       {/* Recommended Badge */}
       {isRecommended && (
-        <div className="absolute -top-2 -right-2 z-10">
+        <div className="absolute top-3 right-3 z-10">
           <Badge 
             variant="default" 
             className="bg-primary text-primary-foreground text-xs px-2 py-0.5 flex items-center gap-1 shadow-md"

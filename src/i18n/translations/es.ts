@@ -21,7 +21,7 @@ export const es = {
     calm: 'Tranquilo/a',
     findPractice: 'Encontrar mi práctica',
     skip: 'Elegir por mi cuenta',
-    recommended: 'Recomendado para ti',
+    recommended: 'Recomendado',
   },
   techniques: {
     title: 'Elige tu práctica',
