@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Wind, Flame, Settings, User, LogOut } from 'lucide-react';
+import { Wind, Flame, Settings, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,7 @@ const HIDDEN_ROUTES = ['/', '/mood-check', '/auth', '/update-password'];
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
 
   // Hide on onboarding, breathing sessions, and auth pages
@@ -39,6 +39,13 @@ export function BottomNav() {
       path: '/settings',
       isActive: location.pathname === '/settings',
     },
+    {
+      icon: User,
+      label: t.navigation.profile,
+      path: '/profile',
+      isActive: location.pathname === '/profile',
+      requiresAuth: true,
+    },
   ];
 
   const handleNavClick = (path: string, requiresAuth?: boolean) => {
@@ -46,14 +53,6 @@ export function BottomNav() {
       navigate('/auth');
     } else {
       navigate(path);
-    }
-  };
-
-  const handleProfileClick = () => {
-    if (user) {
-      signOut();
-    } else {
-      navigate('/auth');
     }
   };
 
@@ -80,28 +79,6 @@ export function BottomNav() {
             <span className="text-xs font-medium">{item.label}</span>
           </button>
         ))}
-        
-        {/* Profile / Auth button */}
-        <button
-          onClick={handleProfileClick}
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 px-4 py-2 min-w-[64px]",
-            "transition-colors duration-200",
-            "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {user ? (
-            <>
-              <LogOut className="h-5 w-5" />
-              <span className="text-xs font-medium">{t.common.signOut}</span>
-            </>
-          ) : (
-            <>
-              <User className="h-5 w-5" />
-              <span className="text-xs font-medium">{t.navigation.profile}</span>
-            </>
-          )}
-        </button>
       </div>
     </nav>
   );

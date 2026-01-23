@@ -14,6 +14,7 @@ import Auth from "./pages/Auth";
 import UpdatePassword from "./pages/UpdatePassword";
 import Progress from "./pages/Progress";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/update-password" element={<UpdatePassword />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <BottomNav />
