@@ -8,7 +8,7 @@ interface UseVoiceGuideProps {
 }
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
-const DEFAULT_VOICE_ID = 'szJ1F5SgxGanyygoW'; // Ligia - native Spanish voice
+const DEFAULT_VOICE_ID = 'spPXlKT5a4JMfbhPRAzA'; // Camila - voz de meditación
 
 // Get user's preferred voice from localStorage
 const getSelectedVoice = (): string => {
