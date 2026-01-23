@@ -15,28 +15,29 @@ interface Voice {
   preview?: string;
 }
 
-// Native Spanish voices from ElevenLabs
+// Voces optimizadas para meditación
 const availableVoices: Voice[] = [
-  { id: 'UDJf7VRO3sTy4sABpNWO', name: 'Paco', description: 'Voz española clara y calmada' },
-  { id: 'szJ1F5SgxGkjGanyygoW', name: 'Ligia', description: 'Voz latinoamericana tranquila' },
-  { id: 'cMKZRsVE5V7xf6qCp9fF', name: 'Víctor', description: 'Voz chilena serena' },
-  { id: 't6OyuZ2N3Y2dqVstuTwK', name: 'Fer', description: 'Voz argentina cálida' },
-  { id: 'Nal4Voh56EtyuScXh27S', name: 'Nina', description: 'Voz española expresiva' },
-  { id: 'vAxdfYVShGAQEwKYqDZR', name: 'Miguel', description: 'Voz española versátil' },
+  { id: 'spPXlKT5a4JMfbhPRAzA', name: 'Camila', description: 'Voz suave y fluida para meditación' },
+  { id: 'rixsIpPlTphvsJd2mI03', name: 'Isabel', description: 'Voz tranquila y serena' },
 ];
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [selectedVoice, setSelectedVoice] = useState<string>('szJ1F5SgxGanyygoW');
+  const [selectedVoice, setSelectedVoice] = useState<string>('spPXlKT5a4JMfbhPRAzA');
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(VOICE_STORAGE_KEY);
-    if (saved) {
+    const validVoiceIds = availableVoices.map(v => v.id);
+    
+    if (saved && validVoiceIds.includes(saved)) {
       setSelectedVoice(saved);
+    } else {
+      // Reset to default if saved voice no longer exists
+      localStorage.setItem(VOICE_STORAGE_KEY, 'spPXlKT5a4JMfbhPRAzA');
     }
   }, []);
 
