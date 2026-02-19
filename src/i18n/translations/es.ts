@@ -68,12 +68,12 @@ export const es = {
     },
     cycles: 'ciclos',
     minutes: 'min',
-    startPractice: 'Comenzar práctica',
+    startPractice: 'Comenzar',
     tapToLearnMore: 'Toca para saber más',
     weeklyProgress: 'Llevas {completed} de {goal} esta semana',
     weeklyGoalReached: '🎉 ¡Meta semanal alcanzada!',
     completedToday: 'Completada hoy',
-    continueSession: 'Continúa donde lo dejaste',
+    continueSession: 'Continuar',
     practicedTimes: 'Practicada {count} veces',
     practicedOnce: 'Practicada 1 vez',
     adjustCycles: 'Ajustar ciclos',
@@ -177,7 +177,7 @@ export const es = {
     diaphragmatic: {
       name: 'Respiración Diafragmática',
       tagline: 'El ancla de tu calma',
-      description: 'La base de toda respiración consciente. Activa tu diafragma para oxigenar profundamente cada célula de tu cuerpo.',
+      description: 'Siente cómo la tensión se disuelve con cada respiración. La calma más natural que existe.',
       benefits: [
         'Reduce el cortisol',
         'Mejora la oxigenación',
@@ -187,7 +187,7 @@ export const es = {
     'box-breathing': {
       name: 'Box Breathing',
       tagline: 'Enfoque y claridad',
-      description: 'Técnica utilizada por Navy SEALs para mantener la calma bajo presión. Cuatro tiempos iguales como una caja perfecta.',
+      description: 'Encuentra claridad y enfoque en solo 4 minutos. Tu mente se calma, tu cuerpo responde.',
       benefits: [
         'Mejora la concentración',
         'Reduce la ansiedad',
@@ -197,7 +197,7 @@ export const es = {
     '4-7-8': {
       name: 'Técnica 4-7-8',
       tagline: 'Puente hacia el sueño',
-      description: 'Desarrollada por el Dr. Andrew Weil, esta técnica activa profundamente el sistema nervioso parasimpático.',
+      description: 'Tu cuerpo se prepara para descansar. Ideal antes de dormir o en momentos de estrés intenso.',
       benefits: [
         'Facilita el sueño',
         'Reduce el estrés',
@@ -207,7 +207,7 @@ export const es = {
     'nadi-shodhana': {
       name: 'Nadi Shodhana',
       tagline: 'Equilibrio energético',
-      description: 'Respiración alterna nasal del yoga. Armoniza los hemisferios cerebrales y equilibra la energía vital.',
+      description: 'Equilibra tu energía y aclara tu mente. Como un reinicio suave para tu sistema nervioso.',
       benefits: [
         'Equilibra los hemisferios',
         'Mejora la claridad mental',
