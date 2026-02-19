@@ -113,6 +113,8 @@ export const en: Translations = {
     preparing: 'Preparing...',
     zenMode: 'Zen Mode',
     exitZen: 'Exit Zen Mode',
+    voiceUnavailable: 'Voice unavailable',
+    usingTimer: 'Using visual timer',
     ambientSounds: 'Ambient sounds',
     rain: 'Rain',
     forest: 'Forest',

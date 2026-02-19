@@ -263,10 +263,10 @@ export default function BreatheV2() {
 
   // Preload audio when component mounts or voice changes
   useEffect(() => {
-    if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading) {
+    if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading && !voiceGuide.hasFailed) {
       voiceGuide.preloadAudio();
     }
-  }, [voiceEnabled, techniqueId, selectedVoice, voiceGuide.isReady, voiceGuide.isLoading]);
+  }, [voiceEnabled, techniqueId, selectedVoice, voiceGuide.isReady, voiceGuide.isLoading, voiceGuide.hasFailed]);
 
   // Stop voice when navigating away
   useEffect(() => {
@@ -296,6 +296,12 @@ export default function BreatheV2() {
     voiceGuide.markUserInteraction();
 
     if (voiceEnabled) {
+      // If voice has failed, fall back to timer silently
+      if (voiceGuide.hasFailed) {
+        timerSession.start();
+        return;
+      }
+
       if (!voiceGuide.isReady && !voiceGuide.isLoading) {
         toast.loading(t.breathe.loadingVoice, { id: 'voice-loading' });
         const loaded = await voiceGuide.preloadAudio();
@@ -310,9 +316,6 @@ export default function BreatheV2() {
             voiceGuide.play();
           }
         } else {
-          if (voiceGuide.error) {
-            toast.warning(voiceGuide.error);
-          }
           timerSession.start();
         }
       } else if (voiceGuide.isReady) {
@@ -612,6 +615,13 @@ export default function BreatheV2() {
                   ))}
                 </SelectContent>
               </Select>
+
+              {/* Voice unavailable indicator */}
+              {voiceEnabled && voiceGuide.hasFailed && (
+                <span className="text-xs text-muted-foreground/70 ml-1">
+                  {t.breathe.voiceUnavailable}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center justify-center gap-4">
@@ -626,11 +636,11 @@ export default function BreatheV2() {
                   )}
                 >
                   {voiceGuide.isLoading ? (
-                    <div className="relative flex items-center justify-center">
-                      {/* Expanding aura rings */}
-                      <span className="absolute inset-0 -m-4 rounded-full bg-primary/30 animate-aura-pulse" />
-                      <span className="absolute inset-0 -m-2 rounded-full bg-primary/20 animate-aura-pulse-delayed" />
-                      <span className="relative z-10">{t.breathe.preparing}</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-sm">{t.breathe.preparing}</span>
+                      <div className="w-24 h-1 rounded-full bg-primary-foreground/30 overflow-hidden">
+                        <div className="h-full bg-primary-foreground/70 rounded-full animate-pulse-loading" />
+                      </div>
                     </div>
                   ) : (
                     <>

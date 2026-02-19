@@ -111,6 +111,8 @@ export const es = {
     preparing: 'Preparando...',
     zenMode: 'Modo Zen',
     exitZen: 'Salir del Modo Zen',
+    voiceUnavailable: 'Voz no disponible',
+    usingTimer: 'Usando temporizador visual',
     ambientSounds: 'Sonidos ambientales',
     rain: 'Lluvia',
     forest: 'Bosque',

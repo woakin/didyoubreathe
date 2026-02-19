@@ -359,3 +359,14 @@
     transform: translate(var(--confetti-x), var(--confetti-y)) rotate(720deg) scale(0.3);
   }
 }
+
+/* Pulse loading bar animation */
+@keyframes pulse-loading {
+  0% { width: 0%; opacity: 0.5; }
+  50% { width: 80%; opacity: 1; }
+  100% { width: 100%; opacity: 0.5; }
+}
+
+.animate-pulse-loading {
+  animation: pulse-loading 1.5s ease-in-out infinite;
+}

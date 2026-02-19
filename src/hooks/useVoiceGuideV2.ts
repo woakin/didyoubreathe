@@ -21,6 +21,7 @@ const getSelectedVoice = (): string => {
 export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuideV2Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timestamps, setTimestamps] = useState<AudioTimestamps | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -42,6 +43,7 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
       
       // Reset states to trigger reload
       setIsReady(false);
+      setHasFailed(false);
       setAudioElement(null);
       setTimestamps(null);
     }
@@ -60,6 +62,7 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
 
     setIsLoading(true);
     setError(null);
+    setHasFailed(false);
     setUseTimerMode(false);
 
     try {
@@ -82,6 +85,7 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
       if (!found) {
         console.log(`[useVoiceGuideV2] Audio not cached for ${techniqueId}/${effectiveVoiceId}`);
         setError('Guía de voz no disponible para esta combinación');
+        setHasFailed(true);
         return false;
       }
 
@@ -154,6 +158,7 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
   return {
     isLoading,
     isReady,
+    hasFailed,
     error,
     timestamps,
     audioElement,
