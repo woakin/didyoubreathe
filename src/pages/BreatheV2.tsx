@@ -36,6 +36,7 @@ export default function BreatheV2() {
     duration: 0,
     todayMinutes: 0,
     streak: 0,
+    todaySessions: 0,
   });
   const [showComplete, setShowComplete] = useState(false);
   
@@ -88,7 +89,7 @@ export default function BreatheV2() {
 
   // Fetch today's total minutes helper
   const fetchTodayStats = useCallback(async () => {
-    if (!user) return { todayMinutes: 0, streak: 0 };
+    if (!user) return { todayMinutes: 0, streak: 0, todaySessions: 0 };
     
     const today = new Date().toISOString().split('T')[0];
     const startOfDay = `${today}T00:00:00`;
@@ -112,6 +113,7 @@ export default function BreatheV2() {
     return {
       todayMinutes: Math.round(totalSeconds / 60),
       streak: streakResult.data?.current_streak || 0,
+      todaySessions: sessionsResult.data?.length || 0,
     };
   }, [user]);
 
@@ -128,7 +130,7 @@ export default function BreatheV2() {
         : 0;
 
       if (!user) {
-        setSessionStats({ duration, todayMinutes: 0, streak: 0 });
+        setSessionStats({ duration, todayMinutes: 0, streak: 0, todaySessions: 1 });
         setShowComplete(true);
         return;
       }
@@ -175,6 +177,7 @@ export default function BreatheV2() {
           duration,
           todayMinutes: stats.todayMinutes,
           streak: newStreak,
+          todaySessions: stats.todaySessions,
         });
         setShowComplete(true);
       } catch (error) {
@@ -194,7 +197,7 @@ export default function BreatheV2() {
       const duration = (p.inhale + p.holdIn + p.exhale + p.holdOut) * p.cycles;
 
       if (!user) {
-        setSessionStats({ duration, todayMinutes: 0, streak: 0 });
+        setSessionStats({ duration, todayMinutes: 0, streak: 0, todaySessions: 1 });
         setShowComplete(true);
         return;
       }
@@ -211,6 +214,7 @@ export default function BreatheV2() {
           duration,
           todayMinutes: stats.todayMinutes,
           streak: stats.streak,
+          todaySessions: stats.todaySessions,
         });
         setShowComplete(true);
       } catch (error) {
@@ -695,6 +699,7 @@ export default function BreatheV2() {
           sessionDuration={sessionStats.duration}
           todayTotalMinutes={sessionStats.todayMinutes}
           currentStreak={sessionStats.streak}
+          todaySessions={sessionStats.todaySessions}
           isAnonymous={!user}
           onRepeat={() => {
             setShowComplete(false);

@@ -127,6 +127,8 @@ export const es = {
     saveProgressDescription: 'Crea una cuenta gratis para guardar tus rachas e historial',
     createAccount: 'Crear Cuenta',
     maybeLater: 'Quizás después',
+    dailyProgress: '{completed} de {goal} respiraciones diarias',
+    dailyGoalReached: '🎉 ¡Meta diaria alcanzada!',
   },
   settings: {
     title: 'Configuración',
