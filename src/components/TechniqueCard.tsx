@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Clock, BarChart2, Sparkles, ChevronDown, Play, CheckCircle, RotateCcw, Minus, Plus } from 'lucide-react';
+import { Clock, Sparkles, ChevronDown, Play, CheckCircle, RotateCcw, Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/i18n';
 import { BreathRhythmVisual } from './BreathRhythmVisual';
@@ -162,31 +162,33 @@ export function TechniqueCard({
             </p>
             
             {/* Duration & Cycles with IKEA Effect adjuster */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
+            <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+              {/* Row 1: Read-only info */}
+              <div className="flex items-center gap-2">
                 <Clock className="h-3.5 w-3.5" />
                 <span>{estimatedMinutes || '<1'} {t.techniques.minutes}</span>
+                <span className="text-muted-foreground/40">·</span>
+                <span>{customCycles} {t.techniques.cycles}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <BarChart2 className="h-3.5 w-3.5" />
+              {/* Row 2: Interactive cycle controls */}
+              <div className="flex items-center gap-3">
                 <button
                   onClick={(e) => handleCycleChange(e, -1)}
-                  className="h-5 w-5 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+                  className="h-9 w-9 min-w-[44px] min-h-[44px] rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
                   aria-label="Decrease cycles"
                 >
-                  <Minus className="h-3 w-3" />
+                  <Minus className="h-4 w-4" />
                 </button>
-                <span className="font-medium text-foreground min-w-[3ch] text-center">
+                <span className="text-sm font-semibold text-foreground min-w-[2rem] text-center">
                   {customCycles}
                 </span>
                 <button
                   onClick={(e) => handleCycleChange(e, 1)}
-                  className="h-5 w-5 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+                  className="h-9 w-9 min-w-[44px] min-h-[44px] rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
                   aria-label="Increase cycles"
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-4 w-4" />
                 </button>
-                <span>{t.techniques.cycles}</span>
               </div>
             </div>
             
