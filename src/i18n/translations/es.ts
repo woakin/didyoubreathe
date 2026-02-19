@@ -120,6 +120,7 @@ export const es = {
     exitZen: 'Salir del Modo Zen',
     voiceUnavailable: 'Voz no disponible',
     usingTimer: 'Usando temporizador visual',
+    findingGuide: 'Buscando tu guía...',
     ambientSounds: 'Sonidos ambientales',
     rain: 'Lluvia',
     forest: 'Bosque',

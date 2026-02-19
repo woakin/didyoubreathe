@@ -284,6 +284,13 @@ export default function BreatheV2() {
     }
   }, [voiceEnabled, techniqueId, selectedVoice, voiceGuide.isReady, voiceGuide.isLoading, voiceGuide.hasFailed]);
 
+  // Auto-fallback when voice fails to load
+  useEffect(() => {
+    if (voiceGuide.hasFailed && voiceEnabled && !sessionState.isActive) {
+      toast.info(`${t.breathe.voiceUnavailable} — ${t.breathe.usingTimer}`);
+    }
+  }, [voiceGuide.hasFailed]);
+
   // Stop voice when navigating away
   useEffect(() => {
     return () => {
@@ -661,7 +668,7 @@ export default function BreatheV2() {
                 >
                   {voiceGuide.isLoading ? (
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-sm">{t.breathe.preparing}</span>
+                      <span className="text-sm">{t.breathe.findingGuide}</span>
                       <div className="w-24 h-1 rounded-full bg-primary-foreground/30 overflow-hidden">
                         <div className="h-full bg-primary-foreground/70 rounded-full animate-pulse-loading" />
                       </div>
