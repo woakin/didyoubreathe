@@ -1,49 +1,73 @@
 
 
-## Simplify Audio System: Remove Edge Function, Use Direct Public URLs
+## Mejorar Modo Zen y Corregir Superposición de Controles
 
-### What Changes
+### Problema 1: Modo Zen no tiene diferencia significativa
 
-The `audio-guides` bucket is already public, so there is no need for a backend function to fetch audio URLs. The client can construct the URL directly, making audio loading faster (one fewer network hop) and the system simpler to maintain.
+Actualmente el Modo Zen solo:
+- Oculta el texto dentro del blob (fase + contador)
+- Oculta los controles inferiores (voz + pausa/stop)
+- Muestra botones de sonido ambiental
 
-### Changes Overview
+Pero el header YA se oculta durante cualquier sesión activa (`isFullyImmersed`), así que la diferencia visual es mínima.
 
-| File | Action |
-|------|--------|
-| `src/hooks/useVoiceGuideV2.ts` | Rewrite `preloadAudio` to construct public URLs directly instead of calling the edge function |
-| `supabase/functions/fetch-cached-audio/index.ts` | Delete this file (and remove the deployed function) |
+### Problema 2: Controles superpuestos
 
-### Technical Details
+La fila de voz (Volume2 + "Camila" + icono de ajustes) y los botones (Stop + Pausar) comparten el mismo `flex-col` sin suficiente espacio, causando que los elementos se monten unos sobre otros en pantallas pequeñas.
 
-**1. `src/hooks/useVoiceGuideV2.ts` -- Direct URL construction**
+---
 
-Replace the edge function call with direct URL building:
+### Cambios Propuestos
 
-```typescript
-const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/audio-guides`;
+**Archivo: `src/pages/BreatheV2.tsx`**
 
-// Map technique IDs: "box-breathing" -> "box_breathing"
-const fileId = techniqueId.replace(/-/g, '_');
-const audioUrl = `${STORAGE_BASE}/${fileId}_${effectiveVoiceId}_v4.mp3`;
-const timestampsUrl = `${STORAGE_BASE}/${fileId}_${effectiveVoiceId}_v4_timestamps.json`;
+**A) Mejorar Modo Zen** -- Hacerlo realmente inmersivo:
+- Ocultar el anillo de progreso del blob (pasar prop `hideRing`)
+- Ocultar el header completamente (ya lo hace)
+- Ocultar TODOS los controles inferiores (ya lo hace)
+- Agregar un tap en el blob para salir del modo zen (en lugar de solo el boton de Sparkles)
+- Hacer que el botón de Sparkles se oculte con un fade después de 3 segundos en zen, y reaparezca al tocar la pantalla
+
+**B) Corregir superposición de controles**:
+- Aumentar el `gap` entre la fila de voz y los botones de acción
+- Darle al contenedor de controles un `pb-safe` para respetar la zona segura del móvil
+- Asegurar que la fila de voz tenga un `min-height` fijo para que no colapse
+
+**Archivo: `src/components/BreathingBlob.tsx`**
+
+- Agregar prop `hideRing` para ocultar el anillo de progreso SVG en modo zen
+- Cuando `hideRing` es true, no renderizar los circulos SVG del progress ring
+
+---
+
+### Detalle Tecnico
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/pages/BreatheV2.tsx` | Mejorar zen mode: ocultar anillo de progreso, auto-hide del botón Sparkles, aumentar gap en controles, agregar padding inferior seguro |
+| `src/components/BreathingBlob.tsx` | Nueva prop `hideRing` para ocultar el anillo de progreso SVG |
+
+**BreatheV2.tsx - Controles (lineas 614-737)**
+
+Cambiar el gap del contenedor de `gap-4` a `gap-5`, y agregar `pb-4` al contenedor principal de controles para evitar la superposicion con la zona segura del movil.
+
+Cambiar el contenedor de la fila de voz para tener `min-h-[44px]` y asegurar que no colapse.
+
+**BreatheV2.tsx - Modo Zen mejorado**
+
+En modo zen activo:
+- Pasar `hideRing={showZenUI}` al BreathingBlob
+- El boton Sparkles se auto-oculta despues de 3s usando un estado `zenButtonVisible` con un `setTimeout`, y reaparece al hacer tap en cualquier parte
+- El selector de sonidos ambientales se posiciona mejor con `bottom-24` en lugar de `bottom-32` para no flotar demasiado alto
+
+**BreathingBlob.tsx - Nueva prop hideRing**
+
+```
+interface BreathingBlobProps {
+  // ... existing props
+  hideRing?: boolean;
+}
 ```
 
-The new `preloadAudio` flow:
-1. Build the audio and timestamps URLs directly
-2. Fetch timestamps JSON via `fetch()` (non-blocking, OK if missing)
-3. Create `new Audio(audioUrl)` and wait for `oncanplaythrough` with a **10-second timeout**
-4. If audio fails (404 or timeout), try the legacy filename (`_es_full.mp3`) as fallback
-5. If everything fails, set `hasFailed = true` so the auto-fallback to timer mode activates
-
-This also fixes the "stuck on Buscando tu guia" bug by adding the timeout and setting `hasFailed` on all error paths.
-
-**2. Delete `supabase/functions/fetch-cached-audio/index.ts`**
-
-This edge function becomes unnecessary. It will be deleted from the codebase and undeployed.
-
-### Benefits
-- **Faster**: Removes one network round-trip (client -> edge function -> storage -> edge function -> client becomes client -> storage directly)
-- **Simpler**: ~40 lines of client code replaces ~100 lines of edge function + ~70 lines of client code
-- **More reliable**: No edge function cold starts or timeouts blocking audio loading
-- **Fixes the stuck button**: The 10-second timeout ensures `isLoading` always resolves
+Envolver los circulos del progress ring (lineas 155-183) en un condicional `{!hideRing && (...)}` para ocultarlos completamente en modo zen.
 
