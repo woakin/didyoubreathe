@@ -34,9 +34,17 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 6 || newPassword.length > 256) {
       return new Response(
-        JSON.stringify({ error: "Password must be at least 6 characters" }),
+        JSON.stringify({ error: "Password must be between 6 and 256 characters" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate token format (should be 64-char hex string)
+    if (!/^[a-f0-9]{64}$/.test(token)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired reset link" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
