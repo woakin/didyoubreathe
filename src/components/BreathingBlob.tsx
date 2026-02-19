@@ -11,6 +11,7 @@ interface BreathingBlobProps {
   phaseTimeRemaining?: number;
   phaseDuration?: number;
   hideText?: boolean;
+  hideRing?: boolean;
 }
 
 const phaseLabels: Record<BreathPhase, { en: string; es: string }> = {
@@ -32,6 +33,7 @@ export function BreathingBlob({
   phaseTimeRemaining,
   phaseDuration,
   hideText = false,
+  hideRing = false,
 }: BreathingBlobProps) {
   // Determine if audio-driven or timer-driven
   const isAudioDriven = currentCount !== undefined;
@@ -152,35 +154,37 @@ export function BreathingBlob({
   return (
     <div className="relative flex items-center justify-center w-[280px] h-[280px]">
       {/* Progress ring */}
-      <svg
-        width={280}
-        height={280}
-        className="absolute -rotate-90"
-      >
-        {/* Background ring */}
-        <circle
-          cx={140}
-          cy={140}
-          r={ringRadius}
-          fill="none"
-          stroke="hsl(var(--border))"
-          strokeWidth={6}
-          className="opacity-20"
-        />
-        {/* Progress circle */}
-        <circle
-          cx={140}
-          cy={140}
-          r={ringRadius}
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth={6}
-          strokeLinecap="round"
-          strokeDasharray={ringCircumference}
-          strokeDashoffset={ringOffset}
-          className="transition-all duration-150 ease-linear"
-        />
-      </svg>
+      {!hideRing && (
+        <svg
+          width={280}
+          height={280}
+          className="absolute -rotate-90"
+        >
+          {/* Background ring */}
+          <circle
+            cx={140}
+            cy={140}
+            r={ringRadius}
+            fill="none"
+            stroke="hsl(var(--border))"
+            strokeWidth={6}
+            className="opacity-20"
+          />
+          {/* Progress circle */}
+          <circle
+            cx={140}
+            cy={140}
+            r={ringRadius}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth={6}
+            strokeLinecap="round"
+            strokeDasharray={ringCircumference}
+            strokeDashoffset={ringOffset}
+            className="transition-all duration-150 ease-linear"
+          />
+        </svg>
+      )}
 
       {/* Organic blob */}
       <svg

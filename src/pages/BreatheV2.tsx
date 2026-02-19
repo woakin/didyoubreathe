@@ -44,6 +44,8 @@ export default function BreatheV2() {
   
   // Zen Mode state
   const [zenMode, setZenMode] = useState(false);
+  const [zenButtonVisible, setZenButtonVisible] = useState(true);
+  const zenButtonTimerRef = useRef<NodeJS.Timeout | null>(null);
   const ambientSounds = useAmbientSounds(0.3);
   const availableVoices = getVoicesForLanguage(language);
   const defaultVoice = getDefaultVoiceForLanguage(language);
@@ -307,8 +309,28 @@ export default function BreatheV2() {
 
   // Toggle Zen Mode
   const toggleZenMode = useCallback(() => {
-    setZenMode(prev => !prev);
+    setZenMode(prev => {
+      const next = !prev;
+      if (next) {
+        // Auto-hide the sparkles button after 3s
+        setZenButtonVisible(true);
+        zenButtonTimerRef.current = setTimeout(() => setZenButtonVisible(false), 3000);
+      } else {
+        if (zenButtonTimerRef.current) clearTimeout(zenButtonTimerRef.current);
+        setZenButtonVisible(true);
+      }
+      return next;
+    });
   }, []);
+
+  // Show zen button on screen tap when hidden
+  const handleScreenTap = useCallback(() => {
+    if (zenMode && !zenButtonVisible) {
+      setZenButtonVisible(true);
+      if (zenButtonTimerRef.current) clearTimeout(zenButtonTimerRef.current);
+      zenButtonTimerRef.current = setTimeout(() => setZenButtonVisible(false), 3000);
+    }
+  }, [zenMode, zenButtonVisible]);
 
   // Handle ambient sound selection
   const handleAmbientChange = useCallback((sound: Exclude<AmbientSoundType, 'none'>) => {
@@ -440,24 +462,25 @@ export default function BreatheV2() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleZenMode}
-                    className={cn(
-                      "absolute top-4 right-4 z-20 bg-background/30 backdrop-blur-sm transition-all duration-300",
-                      zenMode && "bg-primary/20 text-primary"
-                    )}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {zenMode ? t.breathe.exitZen : t.breathe.zenMode}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleZenMode}
+                      className={cn(
+                        "absolute top-4 right-4 z-20 bg-background/30 backdrop-blur-sm transition-all duration-500",
+                        zenMode && "bg-primary/20 text-primary",
+                        zenMode && !zenButtonVisible && "opacity-0 pointer-events-none"
+                      )}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {zenMode ? t.breathe.exitZen : t.breathe.zenMode}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
 
           {/* Header with glassmorphism - fades during active session or Zen Mode */}
           <header className={cn(
@@ -490,8 +513,7 @@ export default function BreatheV2() {
             <div className="w-10" />
           </header>
 
-          {/* Main breathing area */}
-          <div className="flex-1 flex flex-col items-center justify-center -mt-12">
+          <div className="flex-1 flex flex-col items-center justify-center -mt-12" onClick={handleScreenTap}>
             {isAudioDriven ? (
               <BreathingBlob
                 phase={audioDrivenSession.state.currentPhase}
@@ -500,6 +522,7 @@ export default function BreatheV2() {
                 isActive={audioDrivenSession.state.isActive}
                 currentCount={audioDrivenSession.state.currentCount}
                 hideText={showZenUI}
+                hideRing={showZenUI}
               />
             ) : (
               <BreathingBlob
@@ -515,12 +538,13 @@ export default function BreatheV2() {
                 }
                 isActive={timerSession.state.isActive}
                 hideText={showZenUI}
+                hideRing={showZenUI}
               />
             )}
 
             {/* Zen Mode ambient sound picker */}
             {showZenUI && (
-              <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-background/30 backdrop-blur-md animate-fade-in">
+              <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-background/30 backdrop-blur-md animate-fade-in">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -612,11 +636,11 @@ export default function BreatheV2() {
 
           {/* Controls with glassmorphism - hide in Zen Mode */}
           <div className={cn(
-            "flex flex-col items-center gap-4 py-8 animate-fade-in transition-all duration-500",
+            "flex flex-col items-center gap-6 py-8 pb-12 animate-fade-in transition-all duration-500",
             showZenUI && "opacity-0 pointer-events-none"
           )}>
             {/* Voice toggle + selector */}
-            <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm">
+            <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm min-h-[44px]">
               <Button
                 variant="ghost"
                 size="icon"
