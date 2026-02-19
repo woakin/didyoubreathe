@@ -160,7 +160,18 @@ export function TechniqueCard({
             <p className="text-sm text-muted-foreground leading-relaxed">
               {technique.description}
             </p>
-            
+
+            {/* All benefits grouped together (no Skittles effect) */}
+            {technique.benefits.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
+                {technique.benefits.slice(1).map((benefit, i) => (
+                  <span key={i} className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-secondary-foreground">
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {/* Duration & Cycles with IKEA Effect adjuster */}
             <div className="flex flex-col gap-2 text-xs text-muted-foreground">
               {/* Row 1: Read-only info */}
@@ -170,8 +181,9 @@ export function TechniqueCard({
                 <span className="text-muted-foreground/40">·</span>
                 <span>{customCycles} {t.techniques.cycles}</span>
               </div>
-              {/* Row 2: Interactive cycle controls */}
+              {/* Row 2: Label + Interactive cycle controls */}
               <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">{t.techniques.adjustCycles}</span>
                 <button
                   onClick={(e) => handleCycleChange(e, -1)}
                   className="h-9 w-9 min-w-[44px] min-h-[44px] rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
@@ -191,15 +203,6 @@ export function TechniqueCard({
                 </button>
               </div>
             </div>
-            
-            {/* Second benefit only */}
-            {technique.benefits.length > 1 && (
-              <div className="flex flex-wrap gap-1.5">
-                <span className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-secondary-foreground">
-                  {technique.benefits[1]}
-                </span>
-              </div>
-            )}
 
             {/* Start Practice CTA */}
             <Button 
