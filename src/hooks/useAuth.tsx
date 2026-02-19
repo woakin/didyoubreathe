@@ -22,10 +22,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Auto-detect and save timezone on sign-in
+        if ((_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') && session?.user) {
+          try {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            await supabase.from('profiles').update({ timezone: tz } as any).eq('user_id', session.user.id);
+          } catch (e) {
+            console.error('Failed to save timezone:', e);
+          }
+        }
       }
     );
 

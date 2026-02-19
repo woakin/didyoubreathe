@@ -233,13 +233,34 @@ function getInactiveUserEmail(displayName: string, appUrl: string): string {
   `;
 }
 
+/**
+ * Check if it's currently 9 AM on a Monday in the given IANA timezone.
+ */
+function isLocal9AMMonday(timezone: string): boolean {
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "numeric",
+      hour12: false,
+      weekday: "short",
+    });
+    const parts = formatter.formatToParts(now);
+    const hour = parseInt(parts.find(p => p.type === "hour")?.value || "-1", 10);
+    const weekday = parts.find(p => p.type === "weekday")?.value;
+    return weekday === "Mon" && hour === 9;
+  } catch {
+    // Invalid timezone — fall back to default
+    return isLocal9AMMonday("America/Mexico_City");
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   // Authorization check - only allow calls with service role key
-  // This prevents unauthorized users from triggering mass emails
   const authHeader = req.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     console.error("Missing authorization header");
@@ -288,6 +309,7 @@ const handler = async (req: Request): Promise<Response> => {
     const weekAgoISO = weekAgo.toISOString();
 
     let emailsSent = 0;
+    let skippedTimezone = 0;
     let errors: string[] = [];
 
     for (const user of users) {
@@ -297,6 +319,26 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       try {
+        // Get display name, email preference, and timezone from profile
+        const { data: profileData } = await supabaseAdmin
+          .from("profiles")
+          .select("display_name, weekly_email_enabled, timezone")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        // Skip user if weekly emails are disabled
+        if (profileData?.weekly_email_enabled === false) {
+          console.log(`Skipping user ${user.id} - weekly emails disabled`);
+          continue;
+        }
+
+        // Check if it's 9 AM Monday in the user's timezone
+        const userTimezone = profileData?.timezone || "America/Mexico_City";
+        if (!isLocal9AMMonday(userTimezone)) {
+          skippedTimezone++;
+          continue;
+        }
+
         // Get sessions for the past week
         const { data: sessions, error: sessionsError } = await supabaseAdmin
           .from("breathing_sessions")
@@ -319,19 +361,6 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (streakError) {
           console.error(`Error fetching streak for user ${user.id}:`, streakError);
-        }
-
-        // Get display name and email preference from profile
-        const { data: profileData } = await supabaseAdmin
-          .from("profiles")
-          .select("display_name, weekly_email_enabled")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        // Skip user if weekly emails are disabled
-        if (profileData?.weekly_email_enabled === false) {
-          console.log(`Skipping user ${user.id} - weekly emails disabled`);
-          continue;
         }
 
         const displayName = profileData?.display_name || user.user_metadata?.name || user.email.split("@")[0];
@@ -371,12 +400,13 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    console.log(`Weekly summary complete. Sent ${emailsSent} emails. Errors: ${errors.length}`);
+    console.log(`Weekly summary complete. Sent ${emailsSent} emails. Skipped ${skippedTimezone} (wrong timezone hour). Errors: ${errors.length}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        emailsSent, 
+        emailsSent,
+        skippedTimezone,
         totalUsers: users.length,
         errors: errors.length > 0 ? errors : undefined 
       }),

@@ -4,18 +4,20 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, Play, Check, Loader2, Globe } from 'lucide-react';
+import { ArrowLeft, Play, Check, Loader2, Globe, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLanguage, Language } from '@/i18n';
 import { getVoicesForLanguage, getDefaultVoiceForLanguage, Voice } from '@/data/voicesByLanguage';
+import { useAuth } from '@/hooks/useAuth';
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
+  const { user } = useAuth();
   
   const availableVoices = getVoicesForLanguage(language);
   const defaultVoice = getDefaultVoiceForLanguage(language);
@@ -23,6 +25,15 @@ export default function Settings() {
   const [selectedVoice, setSelectedVoice] = useState<string>(defaultVoice);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+  // Load timezone from profile
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('timezone').eq('user_id', user.id).maybeSingle().then(({ data }) => {
+      if (data?.timezone) setUserTimezone(data.timezone);
+    });
+  }, [user]);
 
   useEffect(() => {
     const saved = localStorage.getItem(VOICE_STORAGE_KEY);
@@ -136,6 +147,23 @@ export default function Settings() {
             ))}
           </div>
         </section>
+
+        {/* Timezone Section */}
+        {user && (
+          <section className="space-y-6 mb-8">
+            <div>
+              <h2 className="text-lg font-medium text-foreground mb-2">{t.settings.timezone}</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                {t.settings.timezoneDescription}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card">
+              <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="font-medium text-foreground">{userTimezone.replace(/_/g, ' ')}</span>
+            </div>
+          </section>
+        )}
 
         {/* Voice Section */}
         <section className="space-y-6">
