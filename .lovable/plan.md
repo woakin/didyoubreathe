@@ -1,103 +1,61 @@
 
 
-## Plan: Soft Signup Prompt After First Breathing Session
+## Fix: Audio Loading Infinite Loop and "Preparando..." Stuck State
 
-### The Problem
+### Root Cause
 
-Currently, when an anonymous (not logged in) user completes a breathing session, **nothing happens**. Both `onComplete` callbacks in `BreatheV2.tsx` start with `if (!user) return;` -- meaning anonymous users get no celebration, no stats, and no prompt to save their progress. This is a massive missed opportunity at the user's **peak motivation moment** (Peak-End Rule).
+There are two problems happening simultaneously:
 
-### The Solution
+1. **Infinite retry loop**: The `useEffect` on line 265-269 of `BreatheV2.tsx` calls `preloadAudio()` whenever `voiceEnabled && !isReady && !isLoading`. When audio is not cached (e.g., box-breathing), `preloadAudio` finishes (sets `isLoading=false`), but `isReady` remains `false` -- so the effect fires again immediately, creating an infinite loop (~1 request/second as seen in network logs).
 
-After an anonymous user completes their first session, show a special celebration screen that:
-1. Celebrates their achievement (floating particles, checkmark animation -- same vibe as existing `SessionComplete`)
-2. Shows what they just accomplished (duration of session)
-3. Gently invites them to create an account to **save their progress**
-4. Provides a "skip" option so it never feels forced
+2. **No graceful fallback**: When audio is unavailable, the button stays in "Preparando..." forever because the loading state keeps cycling. The user has no way to start a session.
 
-### User Flow
+### Solution
 
-```text
-[Anonymous user completes session]
-        |
-        v
-┌──────────────────────────────────┐
-│       ✓ Session Complete         │
-│       Well done!                 │
-│                                  │
-│       🕐 2m 30s                  │
-│       This session               │
-│                                  │
-│  ┌────────────────────────────┐  │
-│  │ 💾 Save your progress      │  │
-│  │ Create a free account to   │  │
-│  │ track streaks & history    │  │
-│  │                            │  │
-│  │  [Create Account]          │  │
-│  └────────────────────────────┘  │
-│                                  │
-│  [Repeat]         [Continue]     │
-│                                  │
-│      Maybe later (skip link)     │
-└──────────────────────────────────┘
-```
+#### 1. Add a "failed" state to `useVoiceGuideV2.ts`
+
+- Add a `hasFailed` state that gets set to `true` when `preloadAudio` returns `found: false`
+- This prevents the infinite retry loop since the effect can check `hasFailed` before retrying
+- Reset `hasFailed` when `voiceId` or `techniqueId` changes (so switching voices retries correctly)
+
+#### 2. Update preload effect in `BreatheV2.tsx`
+
+- Add `voiceGuide.hasFailed` to the guard condition: skip preload if already failed
+- When audio has failed, automatically fall back to timer mode silently (no toast spam)
+
+#### 3. Replace "Preparando..." with a progress indicator
+
+- When `voiceGuide.isLoading` is true, show a small pulsing progress bar under the button text instead of just "Preparando..."
+- If loading fails, the button immediately switches to the normal "Start" state (timer fallback)
+- Add a subtle toast explaining the fallback: "Voice guide unavailable, using visual timer"
+
+#### 4. Improve the start button UX
+
+- When voice is enabled but audio failed: show the Play button normally (not "Preparando...") since it will use timer mode
+- Add a small muted indicator below the voice selector showing "Voice unavailable" when `hasFailed` is true, so users understand why there's no voice
 
 ### Technical Changes
 
-#### 1. Modify `src/pages/BreatheV2.tsx`
+**`src/hooks/useVoiceGuideV2.ts`**:
+- Add `hasFailed` boolean state, initialized to `false`
+- Set `hasFailed = true` when response returns `found: false`
+- Reset `hasFailed` in the `voiceId` change effect
+- Export `hasFailed` from the hook
 
-- Update both `onComplete` callbacks (audio-driven and timer-driven) to handle the anonymous case:
-  - Instead of `if (!user) return;`, calculate session duration and show the completion screen even without a user
-  - For logged-in users, behavior stays exactly the same (save to DB, show stats)
+**`src/pages/BreatheV2.tsx`**:
+- Update preload effect guard: `if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading && !voiceGuide.hasFailed)`
+- Update start button: when `hasFailed`, start timer session directly instead of trying to preload again
+- Add a small "Voice unavailable" indicator near the voice selector when `hasFailed` is true
+- Replace the "Preparando..." aura animation with a slim progress bar animation for clearer loading feedback
 
-```typescript
-// Audio-driven onComplete (simplified)
-onComplete: useCallback(async () => {
-  const duration = voiceGuide.timestamps 
-    ? Math.round(voiceGuide.timestamps.totalDuration) 
-    : 0;
+**`src/i18n/translations/en.ts` and `es.ts`**:
+- Add `breathe.voiceUnavailable`: "Voice unavailable" / "Voz no disponible"
+- Add `breathe.usingTimer`: "Using visual timer" / "Usando temporizador visual"
 
-  if (!user) {
-    // Anonymous user -- show celebration with signup prompt
-    setSessionStats({ duration, todayMinutes: 0, streak: 0 });
-    setShowComplete(true);
-    return;
-  }
-  // ... existing logged-in logic unchanged
-}, [...])
-```
+### What This Fixes
 
-Same pattern for the timer-driven `onComplete`.
-
-#### 2. Update `src/components/SessionComplete.tsx`
-
-- Add a new prop: `isAnonymous: boolean`
-- When `isAnonymous` is true:
-  - Hide the "Today" and streak stats (no data to show)
-  - Show a **signup prompt card** with outcome-based copy: "Save your calm" / "Create a free account to track your streaks and breathing history"
-  - Primary CTA: "Create Account" button (navigates to `/auth`)
-  - Secondary: "Maybe later" text link that dismisses the prompt
-  - Still show "Repeat" and "Continue" buttons so the user never feels trapped
-
-#### 3. Update translations in `src/i18n/translations/es.ts` and `en.ts`
-
-Add new keys under `sessionComplete`:
-
-| Key | EN | ES |
-|-----|----|----|
-| `saveProgress` | Save your calm | Guarda tu calma |
-| `saveProgressDescription` | Create a free account to track your streaks and breathing history | Crea una cuenta gratis para guardar tus rachas e historial |
-| `createAccount` | Create Account | Crear Cuenta |
-| `maybeLater` | Maybe later | Quizás después |
-
-#### 4. Wire up navigation in `BreatheV2.tsx`
-
-- Pass `isAnonymous={!user}` to `SessionComplete`
-- Add `onCreateAccount` callback that navigates to `/auth` (signup mode)
-
-### What This Does NOT Change
-
-- Logged-in user experience remains identical
-- No database schema changes required
-- No new dependencies
-- The prompt only appears on session completion, never interrupting the breathing flow
+- Eliminates the infinite network request loop (dozens of wasted API calls)
+- Users can immediately start any technique, even without cached audio
+- Clear visual feedback during loading and clear fallback messaging
+- No breaking changes to the existing flow for techniques that DO have cached audio (diaphragmatic)
 
