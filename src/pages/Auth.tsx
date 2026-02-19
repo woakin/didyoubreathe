@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BreathingOrb } from '@/components/ui/BreathingOrb';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/i18n';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { signIn, signUp, resetPassword } = useAuth();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +33,7 @@ export default function Auth() {
           toast.error(error.message);
           return;
         }
-        toast.success('Revisa tu correo para restablecer tu contraseña');
+        toast.success(t.auth.resetEmailSent);
         setMode('login');
       } else if (mode === 'login') {
         const { error } = await signIn(email, password);
@@ -39,7 +41,7 @@ export default function Auth() {
           toast.error(error.message);
           return;
         }
-        toast.success('¡Bienvenido de vuelta!');
+        toast.success(t.auth.welcomeBackToast);
         navigate('/techniques');
       } else {
         const { error } = await signUp(email, password, name);
@@ -47,7 +49,7 @@ export default function Auth() {
           toast.error(error.message);
           return;
         }
-        toast.success('Cuenta creada. ¡Bienvenido!');
+        toast.success(t.auth.accountCreatedToast);
         navigate('/techniques');
       }
     } finally {
@@ -74,14 +76,14 @@ export default function Auth() {
         <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-border/50">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
-              {mode === 'login' && 'Bienvenido de vuelta'}
-              {mode === 'signup' && 'Crea tu cuenta'}
-              {mode === 'forgot' && 'Recuperar contraseña'}
+              {mode === 'login' && t.auth.welcomeBack}
+              {mode === 'signup' && t.auth.createAccount}
+              {mode === 'forgot' && t.auth.resetPassword}
             </CardTitle>
             <CardDescription>
-              {mode === 'login' && 'Ingresa para continuar tu práctica'}
-              {mode === 'signup' && 'Únete para guardar tu progreso'}
-              {mode === 'forgot' && 'Te enviaremos un enlace para restablecer tu contraseña'}
+              {mode === 'login' && t.auth.loginSubtitle}
+              {mode === 'signup' && t.auth.signupSubtitle}
+              {mode === 'forgot' && t.auth.resetSubtitle}
             </CardDescription>
           </CardHeader>
 
@@ -89,11 +91,11 @@ export default function Auth() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'signup' && (
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre</Label>
+                  <Label htmlFor="name">{t.auth.name}</Label>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Tu nombre"
+                    placeholder={t.auth.namePlaceholder}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
@@ -101,11 +103,11 @@ export default function Auth() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t.auth.email}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="tu@email.com"
+                  placeholder={t.auth.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -114,7 +116,7 @@ export default function Auth() {
 
               {mode !== 'forgot' && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">{t.auth.password}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -129,9 +131,9 @@ export default function Auth() {
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === 'login' && 'Iniciar sesión'}
-                {mode === 'signup' && 'Crear cuenta'}
-                {mode === 'forgot' && 'Enviar enlace'}
+                {mode === 'login' && t.auth.signInButton}
+                {mode === 'signup' && t.auth.signUpButton}
+                {mode === 'forgot' && t.auth.sendLink}
               </Button>
             </form>
 
@@ -139,12 +141,12 @@ export default function Auth() {
               {mode === 'login' && (
                 <>
                   <p className="text-muted-foreground">
-                    ¿No tienes cuenta?{' '}
+                    {t.auth.noAccount}{' '}
                     <button
                       onClick={() => setMode('signup')}
                       className="text-primary hover:underline font-medium"
                     >
-                      Regístrate
+                      {t.auth.register}
                     </button>
                   </p>
                   <p>
@@ -152,19 +154,19 @@ export default function Auth() {
                       onClick={() => setMode('forgot')}
                       className="text-muted-foreground hover:text-primary hover:underline text-sm"
                     >
-                      ¿Olvidaste tu contraseña?
+                      {t.auth.forgotPassword}
                     </button>
                   </p>
                 </>
               )}
               {mode === 'signup' && (
                 <p className="text-muted-foreground">
-                  ¿Ya tienes cuenta?{' '}
+                  {t.auth.hasAccount}{' '}
                   <button
                     onClick={() => setMode('login')}
                     className="text-primary hover:underline font-medium"
                   >
-                    Inicia sesión
+                    {t.auth.loginLink}
                   </button>
                 </p>
               )}
@@ -174,7 +176,7 @@ export default function Auth() {
                     onClick={() => setMode('login')}
                     className="text-primary hover:underline font-medium"
                   >
-                    Volver al inicio de sesión
+                    {t.auth.backToLogin}
                   </button>
                 </p>
               )}
