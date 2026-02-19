@@ -63,6 +63,11 @@ export default function BreatheV2() {
   // Haptic feedback hook
   const haptics = useHapticFeedback({ enabled: true });
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Update voice when language changes
   useEffect(() => {
     const saved = localStorage.getItem(VOICE_STORAGE_KEY);
