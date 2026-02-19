@@ -1,84 +1,61 @@
 
 
-## UX Improvements for the Techniques Page
+## Fix: Audio Loading Progress Bar and Playback on Respiracion Diafragmatica
 
-### Overview
+### Problem
 
-Four enhancements aligned with the Growth Design frameworks (Psych, B.I.A.S., C.L.E.A.R.) to increase motivation, reduce friction, and reward engagement on the "Elige tu practica" page.
+Two related issues on the breathing session page:
 
----
+1. **Repeating progress bar**: The "Preparando..." button contains a loading bar that uses `animation: pulse-loading 1.5s ease-in-out infinite`, making it loop 0-to-100% endlessly. It should show a determinate or single-pass animation.
 
-### 1. Always-Visible Start Button (C.L.E.A.R. - Layout)
+2. **Audio not playing**: The `fetch-cached-audio` function likely returns `found: false` for the diaphragmatic technique (the pre-generated audio files may not exist in storage for this voice/technique combo). When this happens, the UI should quickly fall back to timer mode instead of appearing stuck.
 
-**Problem**: The primary CTA ("Comenzar practica") is hidden inside the collapsible content, violating the "visible from across the room" principle.
+### Changes
 
-**Solution**: Show a compact Play button on every non-expanded card, always visible at the bottom of the card alongside the "Tap to learn more" hint. When the card expands, the full-width button replaces it.
+#### 1. `src/index.css` -- Fix the loading animation
+Replace the infinite looping animation with a single-pass indeterminate shimmer that feels like real progress (Labor Illusion -- "Finding your perfect rhythm..."):
 
-**Changes**:
-- `src/components/TechniqueCard.tsx`: Add a small circular Play button next to the ChevronDown hint. On click, it navigates directly to the technique (same as the full CTA). The full-width button inside the collapsible remains for expanded state.
+- Change `pulse-loading` from `infinite` to a slow single-pass fill (e.g., 8s ease-out, fills from 0% to 90% and stays). This gives the perception of work being done without the jarring loop reset.
 
----
+#### 2. `src/pages/BreatheV2.tsx` -- Improve loading feedback and fallback
 
-### 2. Weekly Progress Indicator -- Endowed Progress
+- When `voiceGuide.isLoading` is true, show the Labor Illusion text: "Buscando tu guia..." / "Finding your guide..." instead of just "Preparando..."
+- When loading fails (`hasFailed`), immediately start the timer session without leaving the user in a stuck state
+- Add a `useEffect` that watches `voiceGuide.hasFailed`: if it becomes true while no session is active, auto-start the timer session and show a brief toast ("Usando modo visual" / "Using visual mode")
 
-**Problem**: No sense of momentum on the techniques page. Users don't know how close they are to their weekly goal.
+#### 3. `src/i18n/translations/es.ts` and `en.ts`
+- Add a key for the Labor Illusion loading text (e.g., `breathe.findingGuide`: "Buscando tu guia..." / "Finding your guide...")
 
-**Solution**: Add a progress bar at the top of the page showing "Llevas 2 de 3 sesiones esta semana" with a small animated progress bar. The weekly goal defaults to 3 sessions. For non-authenticated users, this section is hidden.
+### Technical Details
 
-**Changes**:
-- `src/pages/Techniques.tsx`: 
-  - Import `useAuth` and `supabase` client
-  - Fetch `breathing_sessions` for the current week (last 7 days) on mount
-  - Render a compact progress card between the header and the grid
-  - Show progress bar (using existing `Progress` component), session count, and a celebration message when goal is reached
-- `src/i18n/translations/es.ts` and `en.ts`: Add keys:
-  - `techniques.weeklyProgress`: "Llevas {completed} de {goal} esta semana" / "You've done {completed} of {goal} this week"
-  - `techniques.weeklyGoalReached`: "Meta semanal alcanzada!" / "Weekly goal reached!"
+**Loading animation fix** (`src/index.css`):
+```css
+@keyframes pulse-loading {
+  0% { width: 0%; opacity: 0.7; }
+  100% { width: 92%; opacity: 1; }
+}
 
----
+.animate-pulse-loading {
+  animation: pulse-loading 6s ease-out forwards;
+}
+```
 
-### 3. "Completed Today" Badge -- Peak-End Rule Reward
+Key change: `infinite` becomes `forwards` (fills once and holds).
 
-**Problem**: No visual indicator that a user already practiced a specific technique today. No celebration of completed actions.
+**Auto-fallback** (`src/pages/BreatheV2.tsx`):
+Add a `useEffect` watching `voiceGuide.hasFailed`:
+```ts
+useEffect(() => {
+  if (voiceGuide.hasFailed && voiceEnabled && !sessionState.isActive) {
+    // Auto-fall back to timer mode silently
+    toast.info(t.breathe.voiceUnavailable);
+  }
+}, [voiceGuide.hasFailed]);
+```
 
-**Solution**: Show a small green checkmark badge ("Completada hoy" / "Done today") on technique cards that the user has already practiced today. This leverages the Peak-End Rule (celebrating completion) and provides Endowed Progress context.
+Also update `handleStart` to check `hasFailed` earlier to avoid unnecessary loading delays.
 
-**Changes**:
-- `src/pages/Techniques.tsx`: 
-  - When fetching weekly sessions, also extract a Set of technique IDs completed today
-  - Pass `isCompletedToday` boolean prop to each `TechniqueCard`
-- `src/components/TechniqueCard.tsx`:
-  - Accept `isCompletedToday` prop
-  - When true, show a `Badge` with a CheckCircle icon in the top-left corner: "Completada hoy"
-  - Apply a subtle green-tinted ring to the card
-- `src/i18n/translations/es.ts` and `en.ts`: Add key:
-  - `techniques.completedToday`: "Completada hoy" / "Done today"
+### Edge Cases
+- If audio files are genuinely missing from storage, the fallback to timer mode should be fast (under 2s)
+- The single-pass loading bar will hold at 92% if loading takes longer than 6s, which still looks natural
 
----
-
-### 4. Micro-Animation Rewards on Card Interaction
-
-**Problem**: Cards lack "delighter" feedback when users interact with them (Psych Framework -- rewards).
-
-**Solution**: Add two subtle micro-animations:
-1. **On card tap/hover**: A quick scale bounce (scale up to 1.02, then back) using CSS `active:scale-[0.98]` + spring transition for tactile feel
-2. **On expand**: The ChevronDown rotates 180 degrees smoothly when the card expands
-
-**Changes**:
-- `src/components/TechniqueCard.tsx`:
-  - Add `active:scale-[0.98] transition-transform` to the Card className for press feedback
-  - Rotate the ChevronDown icon based on `isExpanded` state: `rotate-180` when expanded
-- `src/index.css`: No new keyframes needed -- using Tailwind utility classes
-
----
-
-### Technical Summary
-
-| File | Changes |
-|------|---------|
-| `src/components/TechniqueCard.tsx` | Add always-visible Play button, `isCompletedToday` badge, press animation, chevron rotation |
-| `src/pages/Techniques.tsx` | Fetch weekly sessions, compute today's completions, render progress indicator, pass new props |
-| `src/i18n/translations/es.ts` | Add `weeklyProgress`, `weeklyGoalReached`, `completedToday` keys |
-| `src/i18n/translations/en.ts` | Add `weeklyProgress`, `weeklyGoalReached`, `completedToday` keys |
-
-No database changes required -- all data comes from the existing `breathing_sessions` table.
