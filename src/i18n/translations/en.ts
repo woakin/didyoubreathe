@@ -75,6 +75,10 @@ export const en: Translations = {
     weeklyProgress: "You've done {completed} of {goal} this week",
     weeklyGoalReached: '🎉 Weekly goal reached!',
     completedToday: 'Done today',
+    continueSession: 'Continue where you left off',
+    practicedTimes: 'Practiced {count} times',
+    practicedOnce: 'Practiced once',
+    adjustCycles: 'Adjust cycles',
   },
   progress: {
     title: 'Your progress',
