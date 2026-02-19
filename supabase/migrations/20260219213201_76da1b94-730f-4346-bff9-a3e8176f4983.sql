@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN timezone TEXT DEFAULT 'America/Mexico_City';

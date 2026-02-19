@@ -141,6 +141,9 @@ export const es = {
     language: 'Idioma',
     languageDescription: 'Selecciona el idioma de la aplicación',
     previewVoice: 'Escuchar voz',
+    timezone: 'Zona horaria',
+    timezoneDescription: 'Se detecta automáticamente. Se usa para enviarte el resumen semanal a las 9:00 AM tu hora local.',
+    timezoneSaved: 'Zona horaria guardada',
   },
   profile: {
     title: 'Perfil',

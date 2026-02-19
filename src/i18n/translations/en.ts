@@ -143,6 +143,9 @@ export const en: Translations = {
     language: 'Language',
     languageDescription: 'Select the application language',
     previewVoice: 'Preview voice',
+    timezone: 'Timezone',
+    timezoneDescription: 'Auto-detected. Used to send your weekly summary at 9:00 AM your local time.',
+    timezoneSaved: 'Timezone saved',
   },
   profile: {
     title: 'Profile',
