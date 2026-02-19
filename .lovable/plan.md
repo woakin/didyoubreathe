@@ -1,61 +1,62 @@
 
 
-## Fix: Audio Loading Infinite Loop and "Preparando..." Stuck State
+## Deliver Weekly Emails at Each User's Local 9:00 AM
 
-### Root Cause
+### Current Behavior
+The cron job fires once at 9:00 AM UTC on Mondays, sending emails to all users simultaneously -- meaning users in Mexico City get it at 3:00 AM, and users in Madrid at 10:00 AM.
 
-There are two problems happening simultaneously:
+### New Behavior
+Each user receives the email at **9:00 AM their local time** on Mondays, regardless of timezone.
 
-1. **Infinite retry loop**: The `useEffect` on line 265-269 of `BreatheV2.tsx` calls `preloadAudio()` whenever `voiceEnabled && !isReady && !isLoading`. When audio is not cached (e.g., box-breathing), `preloadAudio` finishes (sets `isLoading=false`), but `isReady` remains `false` -- so the effect fires again immediately, creating an infinite loop (~1 request/second as seen in network logs).
+### How It Works
 
-2. **No graceful fallback**: When audio is unavailable, the button stays in "Preparando..." forever because the loading state keeps cycling. The user has no way to start a session.
+1. **Store user timezone in `profiles`** -- add a `timezone` column (e.g., `America/Mexico_City`, `Europe/Madrid`). Default: `America/Mexico_City` since most users are Spanish-speaking.
 
-### Solution
+2. **Change the cron schedule from weekly to hourly on Mondays** -- instead of one run at 9 AM UTC, run every hour on Mondays (`0 * * * 1`).
 
-#### 1. Add a "failed" state to `useVoiceGuideV2.ts`
+3. **Filter users by timezone in the edge function** -- on each hourly run, only process users whose current local hour is 9 AM. For example, at 15:00 UTC the function sends to users in `America/Mexico_City` (UTC-6, so 9 AM local).
 
-- Add a `hasFailed` state that gets set to `true` when `preloadAudio` returns `found: false`
-- This prevents the infinite retry loop since the effect can check `hasFailed` before retrying
-- Reset `hasFailed` when `voiceId` or `techniqueId` changes (so switching voices retries correctly)
-
-#### 2. Update preload effect in `BreatheV2.tsx`
-
-- Add `voiceGuide.hasFailed` to the guard condition: skip preload if already failed
-- When audio has failed, automatically fall back to timer mode silently (no toast spam)
-
-#### 3. Replace "Preparando..." with a progress indicator
-
-- When `voiceGuide.isLoading` is true, show a small pulsing progress bar under the button text instead of just "Preparando..."
-- If loading fails, the button immediately switches to the normal "Start" state (timer fallback)
-- Add a subtle toast explaining the fallback: "Voice guide unavailable, using visual timer"
-
-#### 4. Improve the start button UX
-
-- When voice is enabled but audio failed: show the Play button normally (not "Preparando...") since it will use timer mode
-- Add a small muted indicator below the voice selector showing "Voice unavailable" when `hasFailed` is true, so users understand why there's no voice
+4. **Let users set their timezone from Settings** -- auto-detect from the browser via `Intl.DateTimeFormat().resolvedOptions().timeZone` on first login, and allow manual change in Settings.
 
 ### Technical Changes
 
-**`src/hooks/useVoiceGuideV2.ts`**:
-- Add `hasFailed` boolean state, initialized to `false`
-- Set `hasFailed = true` when response returns `found: false`
-- Reset `hasFailed` in the `voiceId` change effect
-- Export `hasFailed` from the hook
+#### Database Migration
+```sql
+ALTER TABLE profiles ADD COLUMN timezone TEXT DEFAULT 'America/Mexico_City';
+```
 
-**`src/pages/BreatheV2.tsx`**:
-- Update preload effect guard: `if (voiceEnabled && !voiceGuide.isReady && !voiceGuide.isLoading && !voiceGuide.hasFailed)`
-- Update start button: when `hasFailed`, start timer session directly instead of trying to preload again
-- Add a small "Voice unavailable" indicator near the voice selector when `hasFailed` is true
-- Replace the "Preparando..." aura animation with a slim progress bar animation for clearer loading feedback
+#### `supabase/functions/send-weekly-summary/index.ts`
+- Accept an optional `hour` parameter from the cron body (or compute from current UTC time)
+- Before processing each user, check their `profiles.timezone`
+- Use Deno's `Intl` API to check: "Is it 9 AM on a Monday in this user's timezone right now?"
+- Skip users whose local time is not 9 AM
 
-**`src/i18n/translations/en.ts` and `es.ts`**:
-- Add `breathe.voiceUnavailable`: "Voice unavailable" / "Voz no disponible"
-- Add `breathe.usingTimer`: "Using visual timer" / "Usando temporizador visual"
+#### Cron Job (SQL -- not a migration file)
+Reschedule from `0 9 * * 1` (once Monday 9AM UTC) to `0 * * * 1` (every hour on Mondays):
+```sql
+SELECT cron.unschedule('weekly-summary-email');
+SELECT cron.schedule(
+  'weekly-summary-email',
+  '0 * * * 1',
+  $$ ... same vault-based call ... $$
+);
+```
 
-### What This Fixes
+#### `src/hooks/useAuth.tsx` (or equivalent login handler)
+- On successful login, auto-detect timezone and save to profile:
+```ts
+const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+await supabase.from('profiles').update({ timezone: tz }).eq('user_id', user.id);
+```
 
-- Eliminates the infinite network request loop (dozens of wasted API calls)
-- Users can immediately start any technique, even without cached audio
-- Clear visual feedback during loading and clear fallback messaging
-- No breaking changes to the existing flow for techniques that DO have cached audio (diaphragmatic)
+#### `src/pages/Settings.tsx`
+- Add a timezone selector (or just display the auto-detected one with an option to change)
+
+#### Translations
+- Add `settings.timezone` / `settings.timezoneDescription` keys to `en.ts` and `es.ts`
+
+### Edge Cases
+- **Users without a timezone set**: default to `America/Mexico_City`
+- **Duplicate sends**: the function already runs per-user, so filtering by timezone hour prevents duplicates naturally
+- **DST changes**: using IANA timezone names (e.g., `America/Mexico_City`) with `Intl` handles DST automatically
 
