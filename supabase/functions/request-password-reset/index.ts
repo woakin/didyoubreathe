@@ -132,6 +132,35 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || email.length > 255) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate redirectUrl against allowed domains
+    const allowedDomains = [
+      "didyoubreathe.lovable.app",
+      "localhost",
+    ];
+    try {
+      const url = new URL(redirectUrl);
+      if (!allowedDomains.some(domain => url.hostname === domain || url.hostname.endsWith(`.${domain}`))) {
+        return new Response(
+          JSON.stringify({ error: "Invalid redirect URL" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid redirect URL" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
