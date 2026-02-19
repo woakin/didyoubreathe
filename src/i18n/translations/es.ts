@@ -70,6 +70,9 @@ export const es = {
     minutes: 'min',
     startPractice: 'Comenzar práctica',
     tapToLearnMore: 'Toca para saber más',
+    weeklyProgress: 'Llevas {completed} de {goal} esta semana',
+    weeklyGoalReached: '🎉 ¡Meta semanal alcanzada!',
+    completedToday: 'Completada hoy',
   },
   progress: {
     title: 'Tu progreso',
