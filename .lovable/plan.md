@@ -1,46 +1,41 @@
 
 
-## Mejorar Touch Targets del Selector de Ciclos
+## Refinamientos de UX en Tarjetas de Tecnicas
 
-### Problema
-Los botones de - y + para ajustar ciclos miden solo 20x20px (`h-5 w-5`), muy por debajo del minimo recomendado de 44px para dispositivos tactiles. Ademas, el icono de reloj, la duracion, el icono de barras y el selector de ciclos estan todos comprimidos en una sola linea horizontal, dificultando la interaccion en telefonos.
+### Hallazgos del Audit (segun el Knowledge del proyecto)
 
-### Solucion
-Separar la informacion en dos filas y aumentar el tamano de los controles tactiles.
+**1. Efecto Skittles en los beneficios (C.L.E.A.R. - Emphasis)**
+Actualmente hay dos badges de beneficio separados (uno en estado colapsado, otro en expandido). El segundo beneficio ("Reduce la ansiedad") aparece suelto debajo de los controles de ciclos, rompiendo el flujo visual. Mejor agrupar ambos beneficios juntos, justo debajo de la descripcion.
 
-**Archivo: `src/components/TechniqueCard.tsx` (lineas ~152-176)**
+**2. El selector de ciclos no tiene contexto (IKEA Effect)**
+Los botones [-] 6 [+] estan ahi sin etiqueta. El usuario no sabe que esta ajustando. Agregar una etiqueta descriptiva como "Ajustar ciclos" / "Adjust cycles" al lado de los controles para dar contexto al IKEA Effect.
 
-Cambiar el layout de la seccion de duracion y ciclos:
+**3. Orden de contenido expandido (Psych Framework)**
+El orden actual es: descripcion -> duracion/ciclos -> controles -> segundo beneficio -> CTA. Esto pone friccion (controles) antes de motivacion (beneficios). Mejor reorganizar: descripcion -> ambos beneficios juntos -> duracion + controles -> CTA. Asi el usuario recibe toda la motivacion antes de interactuar.
 
-**Antes (1 fila apretada):**
-```
-[Clock] 2 min  [BarChart] [-] 6 [+] ciclos
-```
+### Cambios Propuestos
 
-**Despues (2 filas con espacio):**
-```
-[Clock] 2 min  ·  6 ciclos
-        [-]  6  [+]
-```
+**Archivo: `src/components/TechniqueCard.tsx`**
 
-- Primera fila: informacion de solo lectura (duracion estimada + ciclos actuales)
-- Segunda fila: controles interactivos con botones mas grandes
+Reorganizar el contenido expandido en este orden:
+1. Descripcion (sin cambios)
+2. Ambos beneficios juntos (mover el segundo beneficio aqui, al lado del primero)
+3. Duracion + selector de ciclos con etiqueta contextual
+4. Boton CTA (sin cambios)
 
-Cambios especificos:
-- Aumentar botones de `h-5 w-5` (20px) a `h-9 w-9` (36px) con area tactil minima de 44px usando padding
-- Aumentar los iconos dentro de los botones de `h-3 w-3` a `h-4 w-4`
-- El numero de ciclos central pasa de `text-xs` a `text-sm font-semibold` con ancho minimo de `min-w-[2rem]`
-- Eliminar el icono `BarChart2` que no aporta informacion util
-- Separar la fila informativa de la fila de controles con un `flex-col gap-2`
+Agregar la etiqueta "Ajustar ciclos" encima o al lado de los controles +/-.
+
+**Archivos de traduccion (`es.ts`, `en.ts`)**
+- Ya existe `adjustCycles` en las traducciones, solo hay que usarlo en el componente.
 
 ### Detalle Tecnico
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/components/TechniqueCard.tsx` | Reestructurar la seccion de duracion/ciclos en dos filas, aumentar touch targets de los botones +/- |
+| `src/components/TechniqueCard.tsx` | Mover segundo beneficio arriba (junto al primero, debajo de descripcion). Agregar etiqueta `t.techniques.adjustCycles` al selector de ciclos. |
 
 ### Impacto
-- Touch targets cumplen con las guias de accesibilidad (minimo 44px de area tactil)
-- Separacion visual clara entre informacion y controles interactivos
-- Mas facil de usar con el pulgar en una mano
+- Flujo motivacion-primero: el usuario lee beneficios antes de ver controles
+- IKEA Effect con contexto: el usuario entiende que esta personalizando
+- Sin efecto Skittles: beneficios agrupados en un solo lugar
 
