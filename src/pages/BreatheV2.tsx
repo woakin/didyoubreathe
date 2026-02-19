@@ -7,18 +7,18 @@ import { DynamicMeshBackground } from '@/components/DynamicMeshBackground';
 import { SessionComplete } from '@/components/SessionComplete';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+
 import { getTechniqueById } from '@/data/techniques';
 import { getVoicesForLanguage, getDefaultVoiceForLanguage } from '@/data/voicesByLanguage';
 import { useVoiceGuideV2 } from '@/hooks/useVoiceGuideV2';
 import { useAudioDrivenSession } from '@/hooks/useAudioDrivenSession';
 import { useBreathingSession } from '@/hooks/useBreathingSession';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
-import { useAmbientSounds, AmbientSoundType } from '@/hooks/useAmbientSounds';
+import { useAmbientSounds } from '@/hooks/useAmbientSounds';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX, Sparkles, CloudRain, Trees, Waves, X } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Square, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -42,10 +42,6 @@ export default function BreatheV2() {
   });
   const [showComplete, setShowComplete] = useState(false);
   
-  // Zen Mode state
-  const [zenMode, setZenMode] = useState(false);
-  const [zenButtonVisible, setZenButtonVisible] = useState(true);
-  const zenButtonTimerRef = useRef<NodeJS.Timeout | null>(null);
   const ambientSounds = useAmbientSounds(0.3);
   const availableVoices = getVoicesForLanguage(language);
   const defaultVoice = getDefaultVoiceForLanguage(language);
@@ -307,39 +303,6 @@ export default function BreatheV2() {
     };
   }, []);
 
-  // Toggle Zen Mode
-  const toggleZenMode = useCallback(() => {
-    setZenMode(prev => {
-      const next = !prev;
-      if (next) {
-        // Auto-hide the sparkles button after 3s
-        setZenButtonVisible(true);
-        zenButtonTimerRef.current = setTimeout(() => setZenButtonVisible(false), 3000);
-      } else {
-        if (zenButtonTimerRef.current) clearTimeout(zenButtonTimerRef.current);
-        setZenButtonVisible(true);
-      }
-      return next;
-    });
-  }, []);
-
-  // Show zen button on screen tap when hidden
-  const handleScreenTap = useCallback(() => {
-    if (zenMode && !zenButtonVisible) {
-      setZenButtonVisible(true);
-      if (zenButtonTimerRef.current) clearTimeout(zenButtonTimerRef.current);
-      zenButtonTimerRef.current = setTimeout(() => setZenButtonVisible(false), 3000);
-    }
-  }, [zenMode, zenButtonVisible]);
-
-  // Handle ambient sound selection
-  const handleAmbientChange = useCallback((sound: Exclude<AmbientSoundType, 'none'>) => {
-    if (ambientSounds.currentSound === sound) {
-      ambientSounds.stop();
-    } else {
-      ambientSounds.play(sound);
-    }
-  }, [ambientSounds]);
 
   const handleStart = useCallback(async () => {
     haptics.triggerButtonPress();
@@ -448,7 +411,6 @@ export default function BreatheV2() {
   const isPaused = sessionState.isPaused;
   const currentPhase = sessionState.currentPhase;
   const isFullyImmersed = isActive && !isPaused && currentPhase !== 'complete';
-  const showZenUI = zenMode && isActive && !isPaused;
 
   return (
     <>
@@ -457,36 +419,12 @@ export default function BreatheV2() {
       
       <MainLayout className="bg-transparent" withBottomNav={false}>
         <PageTransition className="flex flex-col min-h-screen px-6 py-8">
-          {/* Zen Mode toggle - always visible during active session */}
-          {isActive && !isPaused && currentPhase !== 'complete' && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleZenMode}
-                      className={cn(
-                        "absolute top-4 right-4 z-20 bg-background/30 backdrop-blur-sm transition-all duration-500",
-                        zenMode && "bg-primary/20 text-primary",
-                        zenMode && !zenButtonVisible && "opacity-0 pointer-events-none"
-                      )}
-                    >
-                      <Sparkles className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {zenMode ? t.breathe.exitZen : t.breathe.zenMode}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
 
           {/* Header with glassmorphism - fades during active session or Zen Mode */}
           <header className={cn(
             "flex items-center justify-between mb-6 animate-fade-in",
             "transition-all duration-700 ease-in-out",
-            (isFullyImmersed || showZenUI) && "opacity-0 pointer-events-none"
+            isFullyImmersed && "opacity-0 pointer-events-none"
           )}>
             <Button
               variant="ghost"
@@ -513,7 +451,7 @@ export default function BreatheV2() {
             <div className="w-10" />
           </header>
 
-          <div className="flex-1 flex flex-col items-center justify-center -mt-12" onClick={handleScreenTap}>
+          <div className="flex-1 flex flex-col items-center justify-center -mt-12">
             {isAudioDriven ? (
               <BreathingBlob
                 phase={audioDrivenSession.state.currentPhase}
@@ -521,8 +459,7 @@ export default function BreatheV2() {
                 totalProgress={audioDrivenSession.state.totalProgress}
                 isActive={audioDrivenSession.state.isActive}
                 currentCount={audioDrivenSession.state.currentCount}
-                hideText={showZenUI}
-                hideRing={showZenUI}
+                hideText={false}
               />
             ) : (
               <BreathingBlob
@@ -537,84 +474,9 @@ export default function BreatheV2() {
                     : 0
                 }
                 isActive={timerSession.state.isActive}
-                hideText={showZenUI}
-                hideRing={showZenUI}
               />
             )}
 
-            {/* Zen Mode ambient sound picker */}
-            {showZenUI && (
-              <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-background/30 backdrop-blur-md animate-fade-in">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleAmbientChange('rain')}
-                        className={cn(
-                          "h-9 w-9 transition-colors",
-                          ambientSounds.currentSound === 'rain' && "text-primary bg-primary/20"
-                        )}
-                      >
-                        <CloudRain className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t.breathe.rain}</TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleAmbientChange('forest')}
-                        className={cn(
-                          "h-9 w-9 transition-colors",
-                          ambientSounds.currentSound === 'forest' && "text-primary bg-primary/20"
-                        )}
-                      >
-                        <Trees className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t.breathe.forest}</TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleAmbientChange('waves')}
-                        className={cn(
-                          "h-9 w-9 transition-colors",
-                          ambientSounds.currentSound === 'waves' && "text-primary bg-primary/20"
-                        )}
-                      >
-                        <Waves className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t.breathe.waves}</TooltipContent>
-                  </Tooltip>
-
-                  {ambientSounds.currentSound !== 'none' && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => ambientSounds.stop()}
-                          className="h-9 w-9 text-muted-foreground"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t.breathe.noAmbient}</TooltipContent>
-                    </Tooltip>
-                  )}
-                </TooltipProvider>
-              </div>
-            )}
 
             {/* Pattern display with glassmorphism */}
             {!isActive && (
@@ -634,11 +496,8 @@ export default function BreatheV2() {
             )}
           </div>
 
-          {/* Controls with glassmorphism - hide in Zen Mode */}
-          <div className={cn(
-            "flex flex-col items-center gap-6 py-8 pb-12 animate-fade-in transition-all duration-500",
-            showZenUI && "opacity-0 pointer-events-none"
-          )}>
+          {/* Controls */}
+          <div className="flex flex-col items-center gap-6 py-8 pb-12 animate-fade-in transition-all duration-500">
             {/* Voice toggle + selector */}
             <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm min-h-[44px]">
               <Button
