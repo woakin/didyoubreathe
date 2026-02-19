@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Clock, BarChart2, Sparkles, ChevronDown, Play } from 'lucide-react';
+import { Clock, BarChart2, Sparkles, ChevronDown, Play, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/i18n';
 import { BreathRhythmVisual } from './BreathRhythmVisual';
@@ -15,6 +15,7 @@ interface TechniqueCardProps {
   index: number;
   isRecommended?: boolean;
   isFeatured?: boolean;
+  isCompletedToday?: boolean;
 }
 
 export function TechniqueCard({ 
@@ -22,7 +23,8 @@ export function TechniqueCard({
   onClick, 
   index, 
   isRecommended = false,
-  isFeatured = false 
+  isFeatured = false,
+  isCompletedToday = false,
 }: TechniqueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useLanguage();
@@ -47,11 +49,13 @@ export function TechniqueCard({
     <Card
       onClick={handleCardClick}
       className={cn(
-        'cursor-pointer transition-all duration-300 hover:shadow-lg relative overflow-hidden group',
+        'cursor-pointer relative overflow-hidden group',
         'bg-card/70 backdrop-blur-sm border-border/40',
         'animate-fade-in-up',
+        'transition-all duration-300 hover:shadow-lg active:scale-[0.98]',
         isFeatured && 'sm:row-span-2',
-        isRecommended && 'ring-2 ring-primary/60 shadow-xl shadow-primary/20 animate-recommended-glow'
+        isRecommended && 'ring-2 ring-primary/60 shadow-xl shadow-primary/20 animate-recommended-glow',
+        isCompletedToday && !isRecommended && 'ring-1 ring-primary/30'
       )}
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -68,6 +72,19 @@ export function TechniqueCard({
           className={cn("scale-150", isRecommended && "scale-[2]")}
         />
       </div>
+
+      {/* Completed Today Badge - top left */}
+      {isCompletedToday && (
+        <div className="absolute top-3 left-3 z-10">
+          <Badge 
+            variant="secondary" 
+            className="bg-primary/15 text-primary text-xs px-2 py-0.5 flex items-center gap-1"
+          >
+            <CheckCircle className="h-3 w-3" />
+            {t.techniques.completedToday}
+          </Badge>
+        </div>
+      )}
 
       {/* Recommended Badge */}
       {isRecommended && (
@@ -153,11 +170,29 @@ export function TechniqueCard({
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Expand hint for non-featured, non-expanded cards */}
+        {/* Collapsed state: always-visible Play + expand hint */}
         {!isFeatured && !isExpanded && (
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
+              <ChevronDown className="h-3 w-3 transition-transform duration-300 group-hover:translate-y-0.5" />
+              <span>{t.techniques.tapToLearnMore}</span>
+            </div>
+            <Button
+              variant="default"
+              size="icon"
+              className="h-8 w-8 rounded-full shrink-0"
+              onClick={handleStartClick}
+              aria-label={t.techniques.startPractice}
+            >
+              <Play className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+
+        {/* Expanded state: chevron up hint */}
+        {!isFeatured && isExpanded && (
           <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground/60 pt-1">
-            <ChevronDown className="h-3 w-3 transition-transform group-hover:translate-y-0.5" />
-            <span>{t.techniques.tapToLearnMore}</span>
+            <ChevronDown className="h-3 w-3 rotate-180 transition-transform duration-300" />
           </div>
         )}
       </CardContent>

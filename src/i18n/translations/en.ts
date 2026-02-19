@@ -72,6 +72,9 @@ export const en: Translations = {
     minutes: 'min',
     startPractice: 'Start practice',
     tapToLearnMore: 'Tap to learn more',
+    weeklyProgress: "You've done {completed} of {goal} this week",
+    weeklyGoalReached: '🎉 Weekly goal reached!',
+    completedToday: 'Done today',
   },
   progress: {
     title: 'Your progress',
