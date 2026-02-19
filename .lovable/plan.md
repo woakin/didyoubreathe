@@ -1,62 +1,84 @@
 
 
-## Deliver Weekly Emails at Each User's Local 9:00 AM
+## UX Improvements for the Techniques Page
 
-### Current Behavior
-The cron job fires once at 9:00 AM UTC on Mondays, sending emails to all users simultaneously -- meaning users in Mexico City get it at 3:00 AM, and users in Madrid at 10:00 AM.
+### Overview
 
-### New Behavior
-Each user receives the email at **9:00 AM their local time** on Mondays, regardless of timezone.
+Four enhancements aligned with the Growth Design frameworks (Psych, B.I.A.S., C.L.E.A.R.) to increase motivation, reduce friction, and reward engagement on the "Elige tu practica" page.
 
-### How It Works
+---
 
-1. **Store user timezone in `profiles`** -- add a `timezone` column (e.g., `America/Mexico_City`, `Europe/Madrid`). Default: `America/Mexico_City` since most users are Spanish-speaking.
+### 1. Always-Visible Start Button (C.L.E.A.R. - Layout)
 
-2. **Change the cron schedule from weekly to hourly on Mondays** -- instead of one run at 9 AM UTC, run every hour on Mondays (`0 * * * 1`).
+**Problem**: The primary CTA ("Comenzar practica") is hidden inside the collapsible content, violating the "visible from across the room" principle.
 
-3. **Filter users by timezone in the edge function** -- on each hourly run, only process users whose current local hour is 9 AM. For example, at 15:00 UTC the function sends to users in `America/Mexico_City` (UTC-6, so 9 AM local).
+**Solution**: Show a compact Play button on every non-expanded card, always visible at the bottom of the card alongside the "Tap to learn more" hint. When the card expands, the full-width button replaces it.
 
-4. **Let users set their timezone from Settings** -- auto-detect from the browser via `Intl.DateTimeFormat().resolvedOptions().timeZone` on first login, and allow manual change in Settings.
+**Changes**:
+- `src/components/TechniqueCard.tsx`: Add a small circular Play button next to the ChevronDown hint. On click, it navigates directly to the technique (same as the full CTA). The full-width button inside the collapsible remains for expanded state.
 
-### Technical Changes
+---
 
-#### Database Migration
-```sql
-ALTER TABLE profiles ADD COLUMN timezone TEXT DEFAULT 'America/Mexico_City';
-```
+### 2. Weekly Progress Indicator -- Endowed Progress
 
-#### `supabase/functions/send-weekly-summary/index.ts`
-- Accept an optional `hour` parameter from the cron body (or compute from current UTC time)
-- Before processing each user, check their `profiles.timezone`
-- Use Deno's `Intl` API to check: "Is it 9 AM on a Monday in this user's timezone right now?"
-- Skip users whose local time is not 9 AM
+**Problem**: No sense of momentum on the techniques page. Users don't know how close they are to their weekly goal.
 
-#### Cron Job (SQL -- not a migration file)
-Reschedule from `0 9 * * 1` (once Monday 9AM UTC) to `0 * * * 1` (every hour on Mondays):
-```sql
-SELECT cron.unschedule('weekly-summary-email');
-SELECT cron.schedule(
-  'weekly-summary-email',
-  '0 * * * 1',
-  $$ ... same vault-based call ... $$
-);
-```
+**Solution**: Add a progress bar at the top of the page showing "Llevas 2 de 3 sesiones esta semana" with a small animated progress bar. The weekly goal defaults to 3 sessions. For non-authenticated users, this section is hidden.
 
-#### `src/hooks/useAuth.tsx` (or equivalent login handler)
-- On successful login, auto-detect timezone and save to profile:
-```ts
-const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-await supabase.from('profiles').update({ timezone: tz }).eq('user_id', user.id);
-```
+**Changes**:
+- `src/pages/Techniques.tsx`: 
+  - Import `useAuth` and `supabase` client
+  - Fetch `breathing_sessions` for the current week (last 7 days) on mount
+  - Render a compact progress card between the header and the grid
+  - Show progress bar (using existing `Progress` component), session count, and a celebration message when goal is reached
+- `src/i18n/translations/es.ts` and `en.ts`: Add keys:
+  - `techniques.weeklyProgress`: "Llevas {completed} de {goal} esta semana" / "You've done {completed} of {goal} this week"
+  - `techniques.weeklyGoalReached`: "Meta semanal alcanzada!" / "Weekly goal reached!"
 
-#### `src/pages/Settings.tsx`
-- Add a timezone selector (or just display the auto-detected one with an option to change)
+---
 
-#### Translations
-- Add `settings.timezone` / `settings.timezoneDescription` keys to `en.ts` and `es.ts`
+### 3. "Completed Today" Badge -- Peak-End Rule Reward
 
-### Edge Cases
-- **Users without a timezone set**: default to `America/Mexico_City`
-- **Duplicate sends**: the function already runs per-user, so filtering by timezone hour prevents duplicates naturally
-- **DST changes**: using IANA timezone names (e.g., `America/Mexico_City`) with `Intl` handles DST automatically
+**Problem**: No visual indicator that a user already practiced a specific technique today. No celebration of completed actions.
 
+**Solution**: Show a small green checkmark badge ("Completada hoy" / "Done today") on technique cards that the user has already practiced today. This leverages the Peak-End Rule (celebrating completion) and provides Endowed Progress context.
+
+**Changes**:
+- `src/pages/Techniques.tsx`: 
+  - When fetching weekly sessions, also extract a Set of technique IDs completed today
+  - Pass `isCompletedToday` boolean prop to each `TechniqueCard`
+- `src/components/TechniqueCard.tsx`:
+  - Accept `isCompletedToday` prop
+  - When true, show a `Badge` with a CheckCircle icon in the top-left corner: "Completada hoy"
+  - Apply a subtle green-tinted ring to the card
+- `src/i18n/translations/es.ts` and `en.ts`: Add key:
+  - `techniques.completedToday`: "Completada hoy" / "Done today"
+
+---
+
+### 4. Micro-Animation Rewards on Card Interaction
+
+**Problem**: Cards lack "delighter" feedback when users interact with them (Psych Framework -- rewards).
+
+**Solution**: Add two subtle micro-animations:
+1. **On card tap/hover**: A quick scale bounce (scale up to 1.02, then back) using CSS `active:scale-[0.98]` + spring transition for tactile feel
+2. **On expand**: The ChevronDown rotates 180 degrees smoothly when the card expands
+
+**Changes**:
+- `src/components/TechniqueCard.tsx`:
+  - Add `active:scale-[0.98] transition-transform` to the Card className for press feedback
+  - Rotate the ChevronDown icon based on `isExpanded` state: `rotate-180` when expanded
+- `src/index.css`: No new keyframes needed -- using Tailwind utility classes
+
+---
+
+### Technical Summary
+
+| File | Changes |
+|------|---------|
+| `src/components/TechniqueCard.tsx` | Add always-visible Play button, `isCompletedToday` badge, press animation, chevron rotation |
+| `src/pages/Techniques.tsx` | Fetch weekly sessions, compute today's completions, render progress indicator, pass new props |
+| `src/i18n/translations/es.ts` | Add `weeklyProgress`, `weeklyGoalReached`, `completedToday` keys |
+| `src/i18n/translations/en.ts` | Add `weeklyProgress`, `weeklyGoalReached`, `completedToday` keys |
+
+No database changes required -- all data comes from the existing `breathing_sessions` table.
