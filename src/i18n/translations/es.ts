@@ -73,6 +73,10 @@ export const es = {
     weeklyProgress: 'Llevas {completed} de {goal} esta semana',
     weeklyGoalReached: '🎉 ¡Meta semanal alcanzada!',
     completedToday: 'Completada hoy',
+    continueSession: 'Continúa donde lo dejaste',
+    practicedTimes: 'Practicada {count} veces',
+    practicedOnce: 'Practicada 1 vez',
+    adjustCycles: 'Ajustar ciclos',
   },
   progress: {
     title: 'Tu progreso',

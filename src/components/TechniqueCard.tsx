@@ -4,18 +4,21 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Clock, BarChart2, Sparkles, ChevronDown, Play, CheckCircle } from 'lucide-react';
+import { Clock, BarChart2, Sparkles, ChevronDown, Play, CheckCircle, RotateCcw, Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/i18n';
 import { BreathRhythmVisual } from './BreathRhythmVisual';
 
 interface TechniqueCardProps {
   technique: BreathingTechnique;
-  onClick: () => void;
+  onClick: (customCycles?: number) => void;
   index: number;
   isRecommended?: boolean;
   isFeatured?: boolean;
   isCompletedToday?: boolean;
+  hasIncompleteSession?: boolean;
+  practiceCount?: number;
+  defaultExpanded?: boolean;
 }
 
 export function TechniqueCard({ 
@@ -25,8 +28,12 @@ export function TechniqueCard({
   isRecommended = false,
   isFeatured = false,
   isCompletedToday = false,
+  hasIncompleteSession = false,
+  practiceCount = 0,
+  defaultExpanded = false,
 }: TechniqueCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [customCycles, setCustomCycles] = useState(technique.pattern.cycles);
   const { t } = useLanguage();
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -40,10 +47,19 @@ export function TechniqueCard({
 
   const handleStartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onClick();
+    onClick(customCycles !== technique.pattern.cycles ? customCycles : undefined);
+  };
+
+  const handleCycleChange = (e: React.MouseEvent, delta: number) => {
+    e.stopPropagation();
+    setCustomCycles(prev => Math.max(1, Math.min(20, prev + delta)));
   };
 
   const showExpanded = isExpanded || isFeatured;
+
+  // Estimated duration based on custom cycles
+  const cycleDuration = technique.pattern.inhale + technique.pattern.holdIn + technique.pattern.exhale + technique.pattern.holdOut;
+  const estimatedMinutes = Math.round((cycleDuration * customCycles) / 60);
 
   return (
     <Card
@@ -55,7 +71,8 @@ export function TechniqueCard({
         'transition-all duration-300 hover:shadow-lg active:scale-[0.98]',
         isFeatured && 'sm:row-span-2',
         isRecommended && 'ring-2 ring-primary/60 shadow-xl shadow-primary/20 animate-recommended-glow',
-        isCompletedToday && !isRecommended && 'ring-1 ring-primary/30'
+        isCompletedToday && !isRecommended && 'ring-1 ring-primary/30',
+        hasIncompleteSession && !isRecommended && 'ring-1 ring-accent/60'
       )}
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -73,22 +90,33 @@ export function TechniqueCard({
         />
       </div>
 
-      {/* Completed Today Badge - top left */}
-      {isCompletedToday && (
-        <div className="absolute top-3 left-3 z-10">
-          <Badge 
-            variant="secondary" 
-            className="bg-primary/15 text-primary text-xs px-2 py-0.5 flex items-center gap-1"
-          >
-            <CheckCircle className="h-3 w-3" />
-            {t.techniques.completedToday}
-          </Badge>
+      {/* Top badges */}
+      <div className="absolute top-3 left-3 right-3 z-10 flex justify-between items-start">
+        <div className="flex flex-col gap-1">
+          {/* Zeigarnik: Incomplete session badge */}
+          {hasIncompleteSession && (
+            <Badge 
+              variant="secondary" 
+              className="bg-accent/20 text-accent-foreground text-xs px-2 py-0.5 flex items-center gap-1"
+            >
+              <RotateCcw className="h-3 w-3" />
+              {t.techniques.continueSession}
+            </Badge>
+          )}
+          {/* Completed Today Badge */}
+          {isCompletedToday && !hasIncompleteSession && (
+            <Badge 
+              variant="secondary" 
+              className="bg-primary/15 text-primary text-xs px-2 py-0.5 flex items-center gap-1"
+            >
+              <CheckCircle className="h-3 w-3" />
+              {t.techniques.completedToday}
+            </Badge>
+          )}
         </div>
-      )}
 
-      {/* Recommended Badge */}
-      {isRecommended && (
-        <div className="absolute top-3 right-3 z-10">
+        {/* Recommended Badge - right side */}
+        {isRecommended && (
           <Badge 
             variant="default" 
             className="bg-primary text-primary-foreground text-xs px-2 py-0.5 flex items-center gap-1 shadow-md animate-pulse-subtle"
@@ -96,10 +124,10 @@ export function TechniqueCard({
             <Sparkles className="h-3 w-3" />
             {t.moodCheck.recommended}
           </Badge>
-        </div>
-      )}
+        )}
+      </div>
 
-      <CardHeader className="pb-2 sm:pb-3 relative z-10">
+      <CardHeader className={cn("pb-2 sm:pb-3 relative z-10", (hasIncompleteSession || isCompletedToday || isRecommended) && "pt-10")}>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-2">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-base sm:text-lg text-foreground leading-tight">
@@ -117,11 +145,18 @@ export function TechniqueCard({
       </CardHeader>
       
       <CardContent className="space-y-3 pt-0 relative z-10">
-        {/* Always visible: Primary benefit only */}
-        <div className="flex flex-wrap gap-1.5">
+        {/* Always visible: Primary benefit + practice count */}
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
             {technique.benefits[0]}
           </span>
+          {practiceCount > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {practiceCount === 1
+                ? t.techniques.practicedOnce
+                : t.techniques.practicedTimes.replace('{count}', String(practiceCount))}
+            </span>
+          )}
         </div>
 
         {/* Expandable content */}
@@ -132,15 +167,32 @@ export function TechniqueCard({
               {technique.description}
             </p>
             
-            {/* Duration & Cycles */}
+            {/* Duration & Cycles with IKEA Effect adjuster */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                <span>{technique.durationMinutes} {t.techniques.minutes}</span>
+                <span>{estimatedMinutes || '<1'} {t.techniques.minutes}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <BarChart2 className="h-3.5 w-3.5" />
-                <span>{technique.pattern.cycles} {t.techniques.cycles}</span>
+                <button
+                  onClick={(e) => handleCycleChange(e, -1)}
+                  className="h-5 w-5 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+                  aria-label="Decrease cycles"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="font-medium text-foreground min-w-[3ch] text-center">
+                  {customCycles}
+                </span>
+                <button
+                  onClick={(e) => handleCycleChange(e, 1)}
+                  className="h-5 w-5 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+                  aria-label="Increase cycles"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+                <span>{t.techniques.cycles}</span>
               </div>
             </div>
             
@@ -165,7 +217,7 @@ export function TechniqueCard({
               size="sm"
             >
               <Play className="h-4 w-4 mr-2" />
-              {t.techniques.startPractice}
+              {hasIncompleteSession ? t.techniques.continueSession : t.techniques.startPractice}
             </Button>
           </CollapsibleContent>
         </Collapsible>

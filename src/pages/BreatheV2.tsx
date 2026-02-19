@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
@@ -23,10 +23,12 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
+const INCOMPLETE_SESSION_KEY = 'breathe-incomplete-session';
 
 export default function BreatheV2() {
   const { techniqueId } = useParams<{ techniqueId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { language, t } = useLanguage();
   const lastPhaseRef = useRef<string>('idle');
@@ -76,9 +78,19 @@ export default function BreatheV2() {
     localStorage.setItem(VOICE_STORAGE_KEY, voiceId);
   }, []);
 
+  // Read custom cycles from navigation state (IKEA Effect)
+  const customCycles = (location.state as any)?.customCycles as number | undefined;
+
   const technique = useMemo(() => {
-    return getTechniqueById(techniqueId || '', language);
-  }, [techniqueId, language]);
+    const base = getTechniqueById(techniqueId || '', language);
+    if (base && customCycles) {
+      return {
+        ...base,
+        pattern: { ...base.pattern, cycles: customCycles },
+      };
+    }
+    return base;
+  }, [techniqueId, language, customCycles]);
 
   // Voice guide with timestamps
   const voiceGuide = useVoiceGuideV2({
@@ -124,6 +136,8 @@ export default function BreatheV2() {
     enabled: voiceEnabled && voiceGuide.isReady,
     onComplete: useCallback(async () => {
       if (!technique) return;
+      // Zeigarnik: clear incomplete session
+      localStorage.removeItem(INCOMPLETE_SESSION_KEY);
 
       const duration = voiceGuide.timestamps 
         ? Math.round(voiceGuide.timestamps.totalDuration) 
@@ -192,6 +206,8 @@ export default function BreatheV2() {
     preparationTime: 0,
     onComplete: useCallback(async () => {
       if (!technique) return;
+      // Zeigarnik: clear incomplete session
+      localStorage.removeItem(INCOMPLETE_SESSION_KEY);
 
       const p = technique.pattern;
       const duration = (p.inhale + p.holdIn + p.exhale + p.holdOut) * p.cycles;
@@ -294,6 +310,14 @@ export default function BreatheV2() {
   const handleStart = useCallback(async () => {
     haptics.triggerButtonPress();
     voiceGuide.markUserInteraction();
+
+    // Zeigarnik: mark session as incomplete
+    if (techniqueId) {
+      localStorage.setItem(INCOMPLETE_SESSION_KEY, JSON.stringify({
+        techniqueId,
+        startedAt: Date.now(),
+      }));
+    }
 
     if (voiceEnabled) {
       // If voice has failed, fall back to timer silently

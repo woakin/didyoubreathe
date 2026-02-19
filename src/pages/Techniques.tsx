@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { TechniqueCard } from '@/components/TechniqueCard';
@@ -17,6 +17,7 @@ interface LocationState {
 }
 
 const WEEKLY_GOAL = 3;
+const INCOMPLETE_SESSION_KEY = 'breathe-incomplete-session';
 
 export default function Techniques() {
   const navigate = useNavigate();
@@ -26,58 +27,119 @@ export default function Techniques() {
 
   const [weeklyCount, setWeeklyCount] = useState(0);
   const [completedTodaySet, setCompletedTodaySet] = useState<Set<string>>(new Set());
+  const [techniqueCountsMap, setTechniqueCountsMap] = useState<Record<string, number>>({});
+  const [favoriteTechnique, setFavoriteTechnique] = useState<string | null>(null);
+
+  // Zeigarnik: read incomplete session from localStorage
+  const incompleteSession = useMemo(() => {
+    try {
+      const stored = localStorage.getItem(INCOMPLETE_SESSION_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Only show if less than 24 hours old
+        if (Date.now() - parsed.startedAt < 24 * 60 * 60 * 1000) {
+          return parsed.techniqueId as string;
+        }
+        localStorage.removeItem(INCOMPLETE_SESSION_KEY);
+      }
+    } catch { /* ignore */ }
+    return null;
+  }, []);
 
   // Get recommendation from mood check
   const { recommendedTechnique } = (location.state as LocationState) || {};
 
   const techniques = getBreathingTechniques(language);
 
-  // Fetch weekly sessions + today's completions
+  // Fetch sessions data: weekly count, today's completions, all-time technique counts
   useEffect(() => {
     if (!user) return;
 
     const now = new Date();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
 
-    supabase
+    // Fetch weekly sessions
+    const weeklyPromise = supabase
       .from('breathing_sessions')
       .select('technique, completed_at')
       .eq('user_id', user.id)
-      .gte('completed_at', startOfWeek.toISOString())
-      .then(({ data }) => {
-        if (!data) return;
-        setWeeklyCount(data.length);
+      .gte('completed_at', startOfWeek.toISOString());
 
+    // Fetch all-time technique counts
+    const allTimePromise = supabase
+      .from('breathing_sessions')
+      .select('technique')
+      .eq('user_id', user.id);
+
+    Promise.all([weeklyPromise, allTimePromise]).then(([weeklyRes, allTimeRes]) => {
+      // Weekly data
+      if (weeklyRes.data) {
+        setWeeklyCount(weeklyRes.data.length);
         const todayTechniques = new Set<string>();
-        data.forEach((s) => {
+        weeklyRes.data.forEach((s) => {
           if (new Date(s.completed_at) >= todayStart) {
             todayTechniques.add(s.technique);
           }
         });
         setCompletedTodaySet(todayTechniques);
-      });
+      }
+
+      // All-time technique counts + find favorite
+      if (allTimeRes.data) {
+        const counts: Record<string, number> = {};
+        allTimeRes.data.forEach((s) => {
+          counts[s.technique] = (counts[s.technique] || 0) + 1;
+        });
+        setTechniqueCountsMap(counts);
+
+        // Smart Default: find most practiced technique
+        let maxCount = 0;
+        let maxTechnique: string | null = null;
+        Object.entries(counts).forEach(([tech, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            maxTechnique = tech;
+          }
+        });
+        if (maxCount >= 2) {
+          setFavoriteTechnique(maxTechnique);
+        }
+      }
+    });
   }, [user]);
 
-  // Sort techniques to show recommended first if available
-  const sortedTechniques = recommendedTechnique
-    ? [...techniques].sort((a, b) => {
+  // Sort: recommended first, then incomplete session, then favorite
+  const sortedTechniques = useMemo(() => {
+    let sorted = [...techniques];
+    if (recommendedTechnique) {
+      sorted.sort((a, b) => {
         if (a.id === recommendedTechnique) return -1;
         if (b.id === recommendedTechnique) return 1;
         return 0;
-      })
-    : techniques;
+      });
+    } else if (incompleteSession) {
+      sorted.sort((a, b) => {
+        if (a.id === incompleteSession) return -1;
+        if (b.id === incompleteSession) return 1;
+        return 0;
+      });
+    }
+    return sorted;
+  }, [techniques, recommendedTechnique, incompleteSession]);
 
   const toggleLanguage = () => {
     setLanguage(language === 'es' ? 'en' : 'es');
   };
 
-  const handleTechniqueSelect = (techniqueId: string) => {
-    navigate(`/breathe/${techniqueId}`);
+  const handleTechniqueSelect = (techniqueId: string, customCycles?: number) => {
+    navigate(`/breathe/${techniqueId}`, {
+      state: customCycles ? { customCycles } : undefined,
+    });
   };
 
   const goalReached = weeklyCount >= WEEKLY_GOAL;
@@ -97,7 +159,6 @@ export default function Techniques() {
             </p>
           </div>
           
-          {/* Language Toggle - Icon only */}
           <Button
             variant="ghost"
             size="icon"
@@ -129,18 +190,23 @@ export default function Techniques() {
         {/* Techniques Bento Grid */}
         <div className="grid gap-4 sm:grid-cols-2 auto-rows-[minmax(200px,auto)]">
           {sortedTechniques.map((technique, index) => {
-            // First card or recommended gets featured treatment
             const isFeatured = index === 0 || technique.id === recommendedTechnique;
+            const isIncomplete = technique.id === incompleteSession;
+            // Smart Default: auto-expand favorite if no recommendation and not featured
+            const shouldAutoExpand = !recommendedTechnique && !isFeatured && technique.id === favoriteTechnique;
             
             return (
               <TechniqueCard
                 key={technique.id}
                 technique={technique}
-                onClick={() => handleTechniqueSelect(technique.id)}
+                onClick={(customCycles) => handleTechniqueSelect(technique.id, customCycles)}
                 index={index}
                 isRecommended={technique.id === recommendedTechnique}
                 isFeatured={isFeatured}
                 isCompletedToday={completedTodaySet.has(technique.id)}
+                hasIncompleteSession={isIncomplete}
+                practiceCount={techniqueCountsMap[technique.id] || 0}
+                defaultExpanded={shouldAutoExpand}
               />
             );
           })}
