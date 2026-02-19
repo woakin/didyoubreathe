@@ -122,6 +122,7 @@ export const en: Translations = {
     exitZen: 'Exit Zen Mode',
     voiceUnavailable: 'Voice unavailable',
     usingTimer: 'Using visual timer',
+    findingGuide: 'Finding your guide...',
     ambientSounds: 'Ambient sounds',
     rain: 'Rain',
     forest: 'Forest',
