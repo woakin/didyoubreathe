@@ -70,12 +70,12 @@ export const en: Translations = {
     },
     cycles: 'cycles',
     minutes: 'min',
-    startPractice: 'Start practice',
+    startPractice: 'Begin',
     tapToLearnMore: 'Tap to learn more',
     weeklyProgress: "You've done {completed} of {goal} this week",
     weeklyGoalReached: '🎉 Weekly goal reached!',
     completedToday: 'Done today',
-    continueSession: 'Continue where you left off',
+    continueSession: 'Continue',
     practicedTimes: 'Practiced {count} times',
     practicedOnce: 'Practiced once',
     adjustCycles: 'Adjust cycles',
@@ -179,7 +179,7 @@ export const en: Translations = {
     diaphragmatic: {
       name: 'Diaphragmatic Breathing',
       tagline: 'The anchor of your calm',
-      description: 'The foundation of all conscious breathing. Activate your diaphragm to deeply oxygenate every cell in your body.',
+      description: 'Feel tension dissolve with every breath. The most natural calm there is.',
       benefits: [
         'Reduces cortisol',
         'Improves oxygenation',
@@ -189,7 +189,7 @@ export const en: Translations = {
     'box-breathing': {
       name: 'Box Breathing',
       tagline: 'Focus and clarity',
-      description: 'A technique used by Navy SEALs to stay calm under pressure. Four equal intervals like a perfect box.',
+      description: 'Find clarity and focus in just 4 minutes. Your mind calms, your body responds.',
       benefits: [
         'Improves concentration',
         'Reduces anxiety',
@@ -199,7 +199,7 @@ export const en: Translations = {
     '4-7-8': {
       name: '4-7-8 Technique',
       tagline: 'Bridge to sleep',
-      description: 'Developed by Dr. Andrew Weil, this technique deeply activates the parasympathetic nervous system.',
+      description: 'Your body prepares to rest. Perfect before sleep or during intense stress.',
       benefits: [
         'Facilitates sleep',
         'Reduces stress',
@@ -209,7 +209,7 @@ export const en: Translations = {
     'nadi-shodhana': {
       name: 'Nadi Shodhana',
       tagline: 'Energy balance',
-      description: 'Alternate nostril breathing from yoga. Harmonizes brain hemispheres and balances vital energy.',
+      description: 'Balance your energy and clear your mind. A gentle reset for your nervous system.',
       benefits: [
         'Balances hemispheres',
         'Improves mental clarity',

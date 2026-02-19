@@ -76,13 +76,13 @@ const localizedContent: Record<string, Record<'es' | 'en', { name: string; tagli
     es: {
       name: 'Respiración Diafragmática',
       tagline: 'El ancla de tu calma',
-      description: 'La base de toda respiración consciente. Activa tu diafragma para oxigenar profundamente cada célula de tu cuerpo.',
+      description: 'Siente cómo la tensión se disuelve con cada respiración. La calma más natural que existe.',
       benefits: ['Reduce el cortisol', 'Mejora la oxigenación', 'Calma el sistema nervioso'],
     },
     en: {
       name: 'Diaphragmatic Breathing',
       tagline: 'The anchor of your calm',
-      description: 'The foundation of all conscious breathing. Activate your diaphragm to deeply oxygenate every cell in your body.',
+      description: 'Feel tension dissolve with every breath. The most natural calm there is.',
       benefits: ['Reduces cortisol', 'Improves oxygenation', 'Calms the nervous system'],
     },
   },
@@ -90,13 +90,13 @@ const localizedContent: Record<string, Record<'es' | 'en', { name: string; tagli
     es: {
       name: 'Box Breathing',
       tagline: 'Enfoque y claridad',
-      description: 'Técnica utilizada por Navy SEALs para mantener la calma bajo presión. Cuatro tiempos iguales como una caja perfecta.',
+      description: 'Encuentra claridad y enfoque en solo 4 minutos. Tu mente se calma, tu cuerpo responde.',
       benefits: ['Mejora la concentración', 'Reduce la ansiedad', 'Equilibra el sistema nervioso'],
     },
     en: {
       name: 'Box Breathing',
       tagline: 'Focus and clarity',
-      description: 'A technique used by Navy SEALs to stay calm under pressure. Four equal intervals like a perfect box.',
+      description: 'Find clarity and focus in just 4 minutes. Your mind calms, your body responds.',
       benefits: ['Improves concentration', 'Reduces anxiety', 'Balances the nervous system'],
     },
   },
@@ -104,13 +104,13 @@ const localizedContent: Record<string, Record<'es' | 'en', { name: string; tagli
     es: {
       name: 'Técnica 4-7-8',
       tagline: 'Puente hacia el sueño',
-      description: 'Desarrollada por el Dr. Andrew Weil, esta técnica activa profundamente el sistema nervioso parasimpático.',
+      description: 'Tu cuerpo se prepara para descansar. Ideal antes de dormir o en momentos de estrés intenso.',
       benefits: ['Facilita el sueño', 'Reduce el estrés', 'Activa el nervio vago'],
     },
     en: {
       name: '4-7-8 Technique',
       tagline: 'Bridge to sleep',
-      description: 'Developed by Dr. Andrew Weil, this technique deeply activates the parasympathetic nervous system.',
+      description: 'Your body prepares to rest. Perfect before sleep or during intense stress.',
       benefits: ['Facilitates sleep', 'Reduces stress', 'Activates the vagus nerve'],
     },
   },
@@ -118,13 +118,13 @@ const localizedContent: Record<string, Record<'es' | 'en', { name: string; tagli
     es: {
       name: 'Nadi Shodhana',
       tagline: 'Equilibrio energético',
-      description: 'Respiración alterna nasal del yoga. Armoniza los hemisferios cerebrales y equilibra la energía vital.',
+      description: 'Equilibra tu energía y aclara tu mente. Como un reinicio suave para tu sistema nervioso.',
       benefits: ['Equilibra los hemisferios', 'Mejora la claridad mental', 'Reduce la tensión'],
     },
     en: {
       name: 'Nadi Shodhana',
       tagline: 'Energy balance',
-      description: 'Alternate nostril breathing from yoga. Harmonizes brain hemispheres and balances vital energy.',
+      description: 'Balance your energy and clear your mind. A gentle reset for your nervous system.',
       benefits: ['Balances hemispheres', 'Improves mental clarity', 'Reduces tension'],
     },
   },

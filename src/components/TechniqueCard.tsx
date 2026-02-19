@@ -79,8 +79,8 @@ export function TechniqueCard({
       {/* Breath Rhythm Visual - Background */}
       <div className={cn(
         "absolute inset-0 flex items-center justify-center transition-opacity duration-500",
-        "opacity-15 group-hover:opacity-25",
-        isFeatured && "opacity-20",
+        "opacity-25 group-hover:opacity-35",
+        isFeatured && "opacity-30",
         isRecommended && "opacity-40 group-hover:opacity-50"
       )}>
         <BreathRhythmVisual
@@ -135,12 +135,6 @@ export function TechniqueCard({
             </h3>
             <p className="text-sm text-primary italic mt-0.5">{technique.tagline}</p>
           </div>
-          <Badge 
-            variant="secondary" 
-            className="text-xs w-fit shrink-0"
-          >
-            {t.techniques.difficulty[technique.difficulty]}
-          </Badge>
         </div>
       </CardHeader>
       
@@ -196,17 +190,12 @@ export function TechniqueCard({
               </div>
             </div>
             
-            {/* Additional benefits */}
+            {/* Second benefit only */}
             {technique.benefits.length > 1 && (
               <div className="flex flex-wrap gap-1.5">
-                {technique.benefits.slice(1).map((benefit) => (
-                  <span
-                    key={benefit}
-                    className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-secondary-foreground"
-                  >
-                    {benefit}
-                  </span>
-                ))}
+                <span className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-secondary-foreground">
+                  {technique.benefits[1]}
+                </span>
               </div>
             )}
 
