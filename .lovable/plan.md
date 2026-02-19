@@ -1,58 +1,46 @@
 
 
-## Optimizar Tarjetas de Tecnicas: Menos Friccion, Mas Motivacion
+## Mejorar Touch Targets del Selector de Ciclos
 
-### Resumen
-Simplificar las tarjetas de tecnicas aplicando los principios del Psych Framework: reducir la densidad de informacion, usar copy orientado a resultados, y hacer que el camino hacia "empezar a respirar" sea lo mas corto posible.
+### Problema
+Los botones de - y + para ajustar ciclos miden solo 20x20px (`h-5 w-5`), muy por debajo del minimo recomendado de 44px para dispositivos tactiles. Ademas, el icono de reloj, la duracion, el icono de barras y el selector de ciclos estan todos comprimidos en una sola linea horizontal, dificultando la interaccion en telefonos.
 
-### Cambios Propuestos
+### Solucion
+Separar la informacion en dos filas y aumentar el tamano de los controles tactiles.
 
-**1. Eliminar el badge de dificultad**
-- Quitar "Principiante" / "Intermedio" / "Avanzado" de las tarjetas
-- Razon: implica juicio y crea friccion para usuarios nuevos. Los beneficios ya comunican la complejidad indirectamente
+**Archivo: `src/components/TechniqueCard.tsx` (lineas ~152-176)**
 
-**2. Reducir beneficios visibles a solo 1 en estado colapsado**
-- Ya se muestra solo 1 en estado colapsado (correcto)
-- En estado expandido: mostrar maximo 2 beneficios en lugar de todos
-- Eliminar la seccion extra de "beneficios adicionales" del estado expandido
+Cambiar el layout de la seccion de duracion y ciclos:
 
-**3. Reescribir el copy para ser outcome-oriented**
-- Cambiar las descripciones de "que es la tecnica" a "que vas a sentir"
-- Ejemplos:
+**Antes (1 fila apretada):**
+```
+[Clock] 2 min  [BarChart] [-] 6 [+] ciclos
+```
 
-| Tecnica | Antes | Despues |
-|---------|-------|---------|
-| Box Breathing | "Tecnica utilizada por Navy SEALs para mantener la calma bajo presion..." | "Encuentra claridad y enfoque en solo 4 minutos. Tu mente se calma, tu cuerpo responde." |
-| Diafragmatica | "La base de toda respiracion consciente. Activa tu diafragma..." | "Siente como la tension se disuelve con cada respiracion. La calma mas natural que existe." |
-| 4-7-8 | "Desarrollada por el Dr. Andrew Weil..." | "Tu cuerpo se prepara para descansar. Ideal antes de dormir o en momentos de estres intenso." |
-| Nadi Shodhana | "Respiracion alterna nasal del yoga..." | "Equilibra tu energia y aclara tu mente. Como un reinicio suave para tu sistema nervioso." |
+**Despues (2 filas con espacio):**
+```
+[Clock] 2 min  ·  6 ciclos
+        [-]  6  [+]
+```
 
-Mismos cambios en ingles.
+- Primera fila: informacion de solo lectura (duracion estimada + ciclos actuales)
+- Segunda fila: controles interactivos con botones mas grandes
 
-**4. Acortar el CTA del boton**
-- "Continua donde lo dejaste" se acorta a "Continuar" (el badge de Zeigarnik arriba ya da el contexto)
-- "Comenzar practica" se acorta a "Comenzar"
-
-**5. Hacer el visual de ritmo mas prominente**
-- Aumentar la opacidad del BreathRhythmVisual de 15% a 25% en estado normal
-- Aumentar de 25% a 35% en hover
-- Esto ayuda al usuario a "sentir" el ritmo antes de empezar
-
----
+Cambios especificos:
+- Aumentar botones de `h-5 w-5` (20px) a `h-9 w-9` (36px) con area tactil minima de 44px usando padding
+- Aumentar los iconos dentro de los botones de `h-3 w-3` a `h-4 w-4`
+- El numero de ciclos central pasa de `text-xs` a `text-sm font-semibold` con ancho minimo de `min-w-[2rem]`
+- Eliminar el icono `BarChart2` que no aporta informacion util
+- Separar la fila informativa de la fila de controles con un `flex-col gap-2`
 
 ### Detalle Tecnico
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/data/techniques.ts` | Reescribir las descripciones en ES y EN a copy outcome-oriented |
-| `src/components/TechniqueCard.tsx` | Eliminar badge de dificultad, limitar beneficios expandidos a 2, acortar texto del CTA |
-| `src/components/TechniqueCard.tsx` | Aumentar opacidad del BreathRhythmVisual (15% a 25% normal, 25% a 35% hover) |
-| `src/i18n/translations/es.ts` | Acortar `startPractice` a "Comenzar" y `continueSession` a "Continuar" |
-| `src/i18n/translations/en.ts` | Acortar `startPractice` a "Begin" y `continueSession` a "Continue" |
+| `src/components/TechniqueCard.tsx` | Reestructurar la seccion de duracion/ciclos en dos filas, aumentar touch targets de los botones +/- |
 
-### Impacto Esperado
-- Reduccion de friccion cognitiva: menos texto que leer antes de actuar
-- Copy que genera anticipacion emocional en lugar de informar
-- CTA mas limpio y directo
-- Visual de ritmo mas presente para conexion intuitiva
+### Impacto
+- Touch targets cumplen con las guias de accesibilidad (minimo 44px de area tactil)
+- Separacion visual clara entre informacion y controles interactivos
+- Mas facil de usar con el pulgar en una mano
 
