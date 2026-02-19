@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n';
-import { CheckCircle, Clock, Calendar, Flame, RotateCcw } from 'lucide-react';
+import { CheckCircle, Clock, Calendar, Flame, RotateCcw, BookmarkPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SessionCompleteProps {
   sessionDuration: number; // seconds
   todayTotalMinutes: number;
   currentStreak: number;
+  isAnonymous?: boolean;
   onRepeat: () => void;
   onContinue: () => void;
+  onCreateAccount?: () => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -64,21 +66,21 @@ export function SessionComplete({
   sessionDuration,
   todayTotalMinutes,
   currentStreak,
+  isAnonymous = false,
   onRepeat,
   onContinue,
+  onCreateAccount,
 }: SessionCompleteProps) {
   const { t } = useLanguage();
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
-    // Stagger the content reveal
     const timer = setTimeout(() => setShowContent(true), 200);
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xl animate-fade-in">
-      {/* Floating particles celebration */}
       <FloatingParticles />
       
       <div 
@@ -94,7 +96,6 @@ export function SessionComplete({
           <div className="w-24 h-24 mx-auto rounded-full bg-primary/20 flex items-center justify-center animate-scale-in">
             <CheckCircle className="h-14 w-14 text-primary" />
           </div>
-          {/* Glow ring */}
           <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full bg-primary/10 animate-ping-slow" />
         </div>
         
@@ -107,28 +108,52 @@ export function SessionComplete({
           </p>
         </div>
         
-        {/* Stats summary */}
+        {/* Stats summary — show duration only for anonymous */}
         <div className="flex justify-center gap-10 pt-2">
           <StatItem 
             icon={<Clock className="h-5 w-5" />} 
             value={formatDuration(sessionDuration)} 
             label={t.sessionComplete?.thisSession || 'This session'} 
           />
-          <StatItem 
-            icon={<Calendar className="h-5 w-5" />} 
-            value={`${todayTotalMinutes}m`} 
-            label={t.sessionComplete?.today || 'Today'} 
-          />
+          {!isAnonymous && (
+            <StatItem 
+              icon={<Calendar className="h-5 w-5" />} 
+              value={`${todayTotalMinutes}m`} 
+              label={t.sessionComplete?.today || 'Today'} 
+            />
+          )}
         </div>
         
-        {/* Streak callout (if active) */}
-        {currentStreak > 1 && (
+        {/* Streak callout (logged-in only) */}
+        {!isAnonymous && currentStreak > 1 && (
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent/30 border border-accent/20 animate-float-in">
             <Flame className="h-5 w-5 text-destructive" />
             <span className="font-medium text-foreground">
               {(t.sessionComplete?.streakCelebration || '{count} day streak!')
                 .replace('{count}', String(currentStreak))}
             </span>
+          </div>
+        )}
+
+        {/* Anonymous signup prompt */}
+        {isAnonymous && (
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-3 animate-float-in">
+            <div className="flex items-center justify-center gap-2 text-primary">
+              <BookmarkPlus className="h-5 w-5" />
+              <span className="font-semibold text-sm">
+                {t.sessionComplete?.saveProgress || 'Save your calm'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t.sessionComplete?.saveProgressDescription || 'Create a free account to track your streaks and breathing history'}
+            </p>
+            <Button
+              size="sm"
+              onClick={onCreateAccount}
+              className="w-full shadow-md"
+            >
+              {t.sessionComplete?.createAccount || 'Create Account'}
+            </Button>
           </div>
         )}
         
@@ -151,6 +176,16 @@ export function SessionComplete({
             {t.common.continue}
           </Button>
         </div>
+
+        {/* Maybe later link for anonymous */}
+        {isAnonymous && (
+          <button
+            onClick={onContinue}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t.sessionComplete?.maybeLater || 'Maybe later'}
+          </button>
+        )}
       </div>
     </div>
   );

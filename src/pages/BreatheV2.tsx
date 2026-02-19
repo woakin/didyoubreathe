@@ -121,9 +121,17 @@ export default function BreatheV2() {
     audioElement: voiceGuide.audioElement,
     enabled: voiceEnabled && voiceGuide.isReady,
     onComplete: useCallback(async () => {
-      if (!user || !technique || !voiceGuide.timestamps) return;
+      if (!technique) return;
 
-      const duration = Math.round(voiceGuide.timestamps.totalDuration);
+      const duration = voiceGuide.timestamps 
+        ? Math.round(voiceGuide.timestamps.totalDuration) 
+        : 0;
+
+      if (!user) {
+        setSessionStats({ duration, todayMinutes: 0, streak: 0 });
+        setShowComplete(true);
+        return;
+      }
 
       try {
         await supabase.from('breathing_sessions').insert({
@@ -162,7 +170,6 @@ export default function BreatheV2() {
             .eq('user_id', user.id);
         }
 
-        // Fetch updated stats and show celebration
         const stats = await fetchTodayStats();
         setSessionStats({
           duration,
@@ -181,10 +188,16 @@ export default function BreatheV2() {
     pattern: technique?.pattern || { inhale: 4, holdIn: 0, exhale: 4, holdOut: 0, cycles: 1 },
     preparationTime: 0,
     onComplete: useCallback(async () => {
-      if (!user || !technique) return;
+      if (!technique) return;
 
       const p = technique.pattern;
       const duration = (p.inhale + p.holdIn + p.exhale + p.holdOut) * p.cycles;
+
+      if (!user) {
+        setSessionStats({ duration, todayMinutes: 0, streak: 0 });
+        setShowComplete(true);
+        return;
+      }
 
       try {
         await supabase.from('breathing_sessions').insert({
@@ -193,7 +206,6 @@ export default function BreatheV2() {
           duration_seconds: duration,
         });
         
-        // Fetch updated stats and show celebration
         const stats = await fetchTodayStats();
         setSessionStats({
           duration,
@@ -683,6 +695,7 @@ export default function BreatheV2() {
           sessionDuration={sessionStats.duration}
           todayTotalMinutes={sessionStats.todayMinutes}
           currentStreak={sessionStats.streak}
+          isAnonymous={!user}
           onRepeat={() => {
             setShowComplete(false);
             handleStart();
@@ -690,6 +703,10 @@ export default function BreatheV2() {
           onContinue={() => {
             setShowComplete(false);
             navigate('/techniques');
+          }}
+          onCreateAccount={() => {
+            setShowComplete(false);
+            navigate('/auth');
           }}
         />
       )}

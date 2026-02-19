@@ -100,6 +100,10 @@ export const en: Translations = {
     thisSession: 'This session',
     today: 'Today',
     streakCelebration: '{count} day streak!',
+    saveProgress: 'Save your calm',
+    saveProgressDescription: 'Create a free account to track your streaks and breathing history',
+    createAccount: 'Create Account',
+    maybeLater: 'Maybe later',
   },
   settings: {
     title: 'Settings',

@@ -98,6 +98,10 @@ export const es = {
     thisSession: 'Esta sesión',
     today: 'Hoy',
     streakCelebration: '¡{count} días seguidos!',
+    saveProgress: 'Guarda tu calma',
+    saveProgressDescription: 'Crea una cuenta gratis para guardar tus rachas e historial',
+    createAccount: 'Crear Cuenta',
+    maybeLater: 'Quizás después',
   },
   settings: {
     title: 'Configuración',
