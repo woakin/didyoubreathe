@@ -129,6 +129,8 @@ export const en: Translations = {
     saveProgressDescription: 'Create a free account to track your streaks and breathing history',
     createAccount: 'Create Account',
     maybeLater: 'Maybe later',
+    dailyProgress: '{completed} of {goal} daily breaths',
+    dailyGoalReached: '🎉 Daily goal reached!',
   },
   settings: {
     title: 'Settings',

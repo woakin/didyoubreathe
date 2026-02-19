@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n';
-import { CheckCircle, Clock, Calendar, Flame, RotateCcw, BookmarkPlus } from 'lucide-react';
+import { CheckCircle, Clock, Calendar, Flame, RotateCcw, BookmarkPlus, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SessionCompleteProps {
   sessionDuration: number; // seconds
   todayTotalMinutes: number;
   currentStreak: number;
+  todaySessions?: number;
   isAnonymous?: boolean;
   onRepeat: () => void;
   onContinue: () => void;
@@ -19,6 +20,44 @@ function formatDuration(seconds: number): string {
   const secs = seconds % 60;
   if (mins === 0) return `${secs}s`;
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+}
+
+function ConfettiBurst() {
+  const particles = useMemo(() => 
+    [...Array(40)].map((_, i) => ({
+      id: i,
+      left: `${50 + (Math.random() - 0.5) * 60}%`,
+      color: i % 5 === 0 ? 'bg-primary' 
+           : i % 5 === 1 ? 'bg-accent' 
+           : i % 5 === 2 ? 'bg-destructive/70'
+           : i % 5 === 3 ? 'bg-breath-inhale'
+           : 'bg-breath-exhale',
+      size: i % 3 === 0 ? 'w-2 h-2' : i % 3 === 1 ? 'w-1.5 h-1.5' : 'w-1 h-1',
+      shape: i % 4 === 0 ? 'rounded-full' : 'rounded-sm',
+      delay: `${Math.random() * 0.5}s`,
+      angle: (Math.random() - 0.5) * 200,
+      distance: 100 + Math.random() * 300,
+    })),
+  []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className={cn("absolute opacity-0", p.color, p.size, p.shape)}
+          style={{
+            left: p.left,
+            top: '40%',
+            animationDelay: p.delay,
+            animation: `confetti-burst 1.5s ease-out ${p.delay} forwards`,
+            ['--confetti-x' as string]: `${p.angle}px`,
+            ['--confetti-y' as string]: `-${p.distance}px`,
+          }}
+        />
+      ))}
+    </div>
+  );
 }
 
 function FloatingParticles() {
@@ -40,6 +79,42 @@ function FloatingParticles() {
           }}
         />
       ))}
+    </div>
+  );
+}
+
+function DailyProgressBar({ completed, goal }: { completed: number; goal: number }) {
+  const { t } = useLanguage();
+  const [animatedWidth, setAnimatedWidth] = useState(0);
+  const percentage = Math.min((completed / goal) * 100, 100);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimatedWidth(percentage), 600);
+    return () => clearTimeout(timer);
+  }, [percentage]);
+
+  return (
+    <div className="w-full space-y-2 animate-fade-in" style={{ animationDelay: '0.4s', animationFillMode: 'both' }}>
+      <div className="flex items-center justify-between text-xs">
+        <span className="flex items-center gap-1.5 text-primary font-medium">
+          <Sparkles className="h-3.5 w-3.5" />
+          {(t.sessionComplete?.dailyProgress || '{completed} of {goal} daily breaths')
+            .replace('{completed}', String(completed))
+            .replace('{goal}', String(goal))}
+        </span>
+        <span className="text-muted-foreground">{Math.round(percentage)}%</span>
+      </div>
+      <div className="h-2.5 rounded-full bg-muted/50 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out"
+          style={{ width: `${animatedWidth}%` }}
+        />
+      </div>
+      {completed >= goal && (
+        <p className="text-xs text-primary font-medium animate-fade-in">
+          {t.sessionComplete?.dailyGoalReached || '🎉 Daily goal reached!'}
+        </p>
+      )}
     </div>
   );
 }
@@ -66,6 +141,7 @@ export function SessionComplete({
   sessionDuration,
   todayTotalMinutes,
   currentStreak,
+  todaySessions = 1,
   isAnonymous = false,
   onRepeat,
   onContinue,
@@ -79,13 +155,17 @@ export function SessionComplete({
     return () => clearTimeout(timer);
   }, []);
 
+  const dailyGoal = 3;
+  const sessionsCompleted = isAnonymous ? 1 : Math.min(todaySessions, dailyGoal);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xl animate-fade-in">
+      <ConfettiBurst />
       <FloatingParticles />
       
       <div 
         className={cn(
-          "relative z-10 text-center space-y-8 px-8 py-10 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-2xl max-w-sm mx-4 transition-all duration-700",
+          "relative z-10 text-center space-y-6 px-8 py-10 rounded-3xl bg-card/60 backdrop-blur-sm border border-border/50 shadow-2xl max-w-sm mx-4 transition-all duration-700",
           showContent 
             ? "opacity-100 translate-y-0 scale-100" 
             : "opacity-0 translate-y-8 scale-95"
@@ -108,7 +188,7 @@ export function SessionComplete({
           </p>
         </div>
         
-        {/* Stats summary — show duration only for anonymous */}
+        {/* Stats summary */}
         <div className="flex justify-center gap-10 pt-2">
           <StatItem 
             icon={<Clock className="h-5 w-5" />} 
@@ -123,6 +203,9 @@ export function SessionComplete({
             />
           )}
         </div>
+
+        {/* Endowed progress bar */}
+        <DailyProgressBar completed={sessionsCompleted} goal={dailyGoal} />
         
         {/* Streak callout (logged-in only) */}
         {!isAnonymous && currentStreak > 1 && (
@@ -158,7 +241,7 @@ export function SessionComplete({
         )}
         
         {/* Actions */}
-        <div className="flex gap-4 justify-center pt-4">
+        <div className="flex gap-4 justify-center pt-2">
           <Button 
             variant="outline" 
             size="lg"

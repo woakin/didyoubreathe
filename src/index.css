@@ -344,3 +344,18 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* Confetti burst animation */
+@keyframes confetti-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--confetti-x), var(--confetti-y)) rotate(720deg) scale(0.3);
+  }
+}
