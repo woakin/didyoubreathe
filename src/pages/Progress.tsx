@@ -52,7 +52,10 @@ export default function Progress() {
     if (!user) return;
 
     try {
-      const [streakResult, profileResult] = await Promise.all([
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      const [streakResult, profileResult, sessionsResult, weeklyCountResult] = await Promise.all([
         supabase
           .from('daily_streaks')
           .select('*')
@@ -62,7 +65,16 @@ export default function Progress() {
           .from('profiles')
           .select('weekly_email_enabled')
           .eq('user_id', user.id)
-          .maybeSingle()
+          .maybeSingle(),
+        supabase
+          .from('breathing_sessions')
+          .select('duration_seconds')
+          .eq('user_id', user.id),
+        supabase
+          .from('breathing_sessions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('completed_at', weekAgo.toISOString())
       ]);
 
       if (streakResult.data) {
@@ -73,29 +85,18 @@ export default function Progress() {
         setWeeklyEmailEnabled(profileResult.data.weekly_email_enabled ?? true);
       }
 
-      const { data: sessions } = await supabase
-        .from('breathing_sessions')
-        .select('*')
-        .eq('user_id', user.id);
+      const totalSessions = sessionsResult.data?.length || 0;
+      const totalMinutes = sessionsResult.data?.reduce(
+        (acc, s) => acc + Math.floor(s.duration_seconds / 60),
+        0
+      ) || 0;
+      const thisWeekSessions = weeklyCountResult.count || 0;
 
-      if (sessions) {
-        const totalMinutes = sessions.reduce(
-          (acc, s) => acc + Math.floor(s.duration_seconds / 60),
-          0
-        );
-
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const thisWeekSessions = sessions.filter(
-          (s) => new Date(s.completed_at) >= weekAgo
-        ).length;
-
-        setStats({
-          totalSessions: sessions.length,
-          totalMinutes,
-          thisWeekSessions,
-        });
-      }
+      setStats({
+        totalSessions,
+        totalMinutes,
+        thisWeekSessions,
+      });
     } catch (error) {
       console.error('Error fetching progress:', error);
     } finally {
