@@ -102,13 +102,11 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
         audio = await tryLoadAudio(audioUrl);
       } catch {
         // v4 not found — try legacy filename
-        console.log(`[useVoiceGuideV2] v4 audio not found, trying legacy: ${fileId}_${effectiveVoiceId}_es_full.mp3`);
         try {
           const legacyUrl = `${STORAGE_BASE}/${fileId}_${effectiveVoiceId}_es_full.mp3`;
           audio = await tryLoadAudio(legacyUrl);
           timestampsData = null; // Legacy files have no timestamps
         } catch {
-          console.log(`[useVoiceGuideV2] No audio available for ${fileId}/${effectiveVoiceId}`);
           setError('Guía de voz no disponible');
           setHasFailed(true);
           setIsLoading(false);
