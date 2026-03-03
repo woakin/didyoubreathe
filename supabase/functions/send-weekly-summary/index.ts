@@ -310,7 +310,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     let emailsSent = 0;
     let skippedTimezone = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     for (const user of users) {
       if (!user.email) {
