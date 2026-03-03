@@ -107,6 +107,7 @@ export function useVoiceGuideV2({ techniqueId, enabled, voiceId }: UseVoiceGuide
           audio = await tryLoadAudio(legacyUrl);
           timestampsData = null; // Legacy files have no timestamps
         } catch {
+          console.warn(`[useVoiceGuideV2] No audio available for ${fileId}/${effectiveVoiceId}`);
           setError('Guía de voz no disponible');
           setHasFailed(true);
           setIsLoading(false);
