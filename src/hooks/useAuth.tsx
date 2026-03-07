@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if ((_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') && session?.user) {
           try {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            await supabase.from('profiles').update({ timezone: tz } as any).eq('user_id', session.user.id);
+            await supabase.from('profiles').update({ timezone: tz }).eq('user_id', session.user.id);
           } catch (e) {
             console.error('Failed to save timezone:', e);
           }
