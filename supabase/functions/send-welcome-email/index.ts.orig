@@ -16,15 +16,6 @@ interface WelcomeEmailRequest {
   };
 }
 
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -33,11 +24,11 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { record }: WelcomeEmailRequest = await req.json();
-    
+
     console.log("Sending welcome email to:", record.email);
 
-    const displayName = record.display_name ? escapeHtml(record.display_name) : 'respirador';
-    
+    const displayName = record.display_name || 'respirador';
+
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -55,18 +46,18 @@ const handler = async (req: Request): Promise<Response> => {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-              body { 
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-                line-height: 1.7; 
-                color: #3D3530; 
+              body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                line-height: 1.7;
+                color: #3D3530;
                 background-color: #F9F8F5;
                 margin: 0;
                 padding: 0;
               }
-              .container { 
-                max-width: 560px; 
-                margin: 0 auto; 
-                padding: 48px 24px; 
+              .container {
+                max-width: 560px;
+                margin: 0 auto;
+                padding: 48px 24px;
               }
               .logo-section {
                 text-align: center;
@@ -78,22 +69,22 @@ const handler = async (req: Request): Promise<Response> => {
                 color: #6B7B4C;
                 letter-spacing: -0.5px;
               }
-              h1 { 
-                color: #3D3530; 
+              h1 {
+                color: #3D3530;
                 font-size: 28px;
                 font-weight: 600;
                 margin-bottom: 16px;
                 letter-spacing: -0.5px;
               }
-              .intro { 
+              .intro {
                 color: #5C554E;
                 font-size: 16px;
                 margin-bottom: 32px;
               }
-              .card { 
-                background: #F0EDE6; 
-                padding: 24px; 
-                border-radius: 16px; 
+              .card {
+                background: #F0EDE6;
+                padding: 24px;
+                border-radius: 16px;
                 margin: 24px 0;
                 border: 1px solid #E5E0D5;
               }
@@ -105,12 +96,12 @@ const handler = async (req: Request): Promise<Response> => {
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
               }
-              .technique-list { 
+              .technique-list {
                 list-style: none;
                 padding: 0;
                 margin: 0;
               }
-              .technique-list li { 
+              .technique-list li {
                 padding: 12px 0;
                 border-bottom: 1px solid #E5E0D5;
                 display: flex;
@@ -146,11 +137,11 @@ const handler = async (req: Request): Promise<Response> => {
                 margin-top: 32px;
                 color: #7A746C;
               }
-              .footer { 
-                margin-top: 48px; 
-                padding-top: 24px; 
-                border-top: 1px solid #E5E0D5; 
-                color: #9A948C; 
+              .footer {
+                margin-top: 48px;
+                padding-top: 24px;
+                border-top: 1px solid #E5E0D5;
+                color: #9A948C;
                 font-size: 13px;
                 text-align: center;
               }
@@ -161,14 +152,14 @@ const handler = async (req: Request): Promise<Response> => {
               <div class="logo-section">
                 <span class="logo-text">Did You Breathe?</span>
               </div>
-              
+
               <h1>Hola ${displayName}</h1>
-              
+
               <p class="intro">
-                Bienvenido a tu nueva práctica de respiración consciente. 
+                Bienvenido a tu nueva práctica de respiración consciente.
                 Has dado el primer paso hacia una vida más equilibrada.
               </p>
-              
+
               <div class="card">
                 <div class="card-title">Tus técnicas disponibles</div>
                 <ul class="technique-list">
@@ -190,18 +181,18 @@ const handler = async (req: Request): Promise<Response> => {
                   </li>
                 </ul>
               </div>
-              
+
               <div class="cta-section">
                 <a href="https://didyoubreathe.lovable.app/techniques" class="cta-button">
                   Comenzar a respirar
                 </a>
               </div>
-              
+
               <p class="signature">
                 Un respiro a la vez,<br>
                 <strong>El equipo de Did You Breathe?</strong>
               </p>
-              
+
               <div class="footer">
                 <p>Este correo fue enviado desde Did You Breathe?</p>
                 <p>Tu práctica de respiración guiada</p>
@@ -220,10 +211,10 @@ const handler = async (req: Request): Promise<Response> => {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Error sending welcome email:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

@@ -115,7 +115,7 @@ export default function Techniques() {
 
   // Sort: recommended first, then incomplete session, then favorite
   const sortedTechniques = useMemo(() => {
-    let sorted = [...techniques];
+    const sorted = [...techniques];
     if (recommendedTechnique) {
       sorted.sort((a, b) => {
         if (a.id === recommendedTechnique) return -1;
