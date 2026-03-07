@@ -25,6 +25,10 @@ import { cn } from '@/lib/utils';
 const VOICE_STORAGE_KEY = 'breathe-voice-preference';
 const INCOMPLETE_SESSION_KEY = 'breathe-incomplete-session';
 
+interface LocationState {
+  customCycles?: number;
+}
+
 export default function BreatheV2() {
   const { techniqueId } = useParams<{ techniqueId: string }>();
   const navigate = useNavigate();
@@ -82,7 +86,7 @@ export default function BreatheV2() {
   }, []);
 
   // Read custom cycles from navigation state (IKEA Effect)
-  const customCycles = (location.state as any)?.customCycles as number | undefined;
+  const { customCycles } = (location.state as LocationState) || {};
 
   const technique = useMemo(() => {
     const base = getTechniqueById(techniqueId || '', language);
