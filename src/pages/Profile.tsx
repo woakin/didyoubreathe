@@ -63,25 +63,27 @@ export default function Profile() {
     if (!user) return;
 
     try {
-      // Fetch sessions
-      const { data: sessions } = await supabase
-        .from('breathing_sessions')
-        .select('duration_seconds, technique')
-        .eq('user_id', user.id);
-
-      // Fetch streak
-      const { data: streakData } = await supabase
-        .from('daily_streaks')
-        .select('current_streak, longest_streak, last_session_date')
-        .eq('user_id', user.id)
-        .single();
-
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('user_id', user.id)
-        .single();
+      // Fetch all data in parallel for better performance
+      const [
+        { data: sessions },
+        { data: streakData },
+        { data: profileData }
+      ] = await Promise.all([
+        supabase
+          .from('breathing_sessions')
+          .select('duration_seconds, technique')
+          .eq('user_id', user.id),
+        supabase
+          .from('daily_streaks')
+          .select('current_streak, longest_streak, last_session_date')
+          .eq('user_id', user.id)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', user.id)
+          .single()
+      ]);
 
       const totalSessions = sessions?.length || 0;
       const totalMinutes = Math.round(
