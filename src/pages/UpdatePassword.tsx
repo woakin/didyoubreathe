@@ -76,10 +76,11 @@ export default function UpdatePassword() {
       setTimeout(() => {
         navigate('/auth');
       }, 2000);
-    } catch (error: any) {
-      toast.error(error.message || 'Error al actualizar la contraseña');
-      if (error.message.includes('expired') || error.message.includes('Invalid')) {
-        setTokenError(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar la contraseña';
+      toast.error(errorMessage);
+      if (errorMessage.includes('expired') || errorMessage.includes('Invalid')) {
+        setTokenError(errorMessage);
       }
     } finally {
       setLoading(false);
