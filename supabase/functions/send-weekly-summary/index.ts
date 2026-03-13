@@ -16,6 +16,15 @@ interface UserStats {
   displayName: string;
 }
 
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function getActiveUserEmail(stats: UserStats, appUrl: string): string {
   return `
 <!DOCTYPE html>
@@ -363,7 +372,8 @@ const handler = async (req: Request): Promise<Response> => {
           console.error(`Error fetching streak for user ${user.id}:`, streakError);
         }
 
-        const displayName = profileData?.display_name || user.user_metadata?.name || user.email.split("@")[0];
+        const rawDisplayName = profileData?.display_name || user.user_metadata?.name || user.email.split("@")[0];
+        const displayName = escapeHtml(rawDisplayName);
         const hasActivity = sessions && sessions.length > 0;
         const totalMinutes = sessions?.reduce((acc, s) => acc + (s.duration_seconds / 60), 0) || 0;
 
