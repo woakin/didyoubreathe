@@ -310,7 +310,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const users = usersData.users;
-    console.log(`Found ${users.length} users to process`);
+    console.log(`Found ${users.length} users in Auth`);
 
     // Calculate date range for the past week
     const weekAgo = new Date();
@@ -321,59 +321,99 @@ const handler = async (req: Request): Promise<Response> => {
     let skippedTimezone = 0;
     const errors: string[] = [];
 
-    for (const user of users) {
-      if (!user.email) {
-        console.log(`Skipping user ${user.id} - no email`);
-        continue;
+    // 1. Bulk fetch profiles for all users
+    const userIds = users.map(u => u.id);
+    const { data: allProfiles, error: profilesError } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, display_name, weekly_email_enabled, timezone")
+      .in("user_id", userIds);
+
+    if (profilesError) {
+      console.error("Error fetching profiles in bulk:", profilesError);
+      throw profilesError;
+    }
+
+    const profilesMap = new Map(allProfiles?.map(p => [p.user_id, p]) || []);
+
+    // 2. Filter users to process based on profile settings and timezone
+    const usersToProcess = users.filter(user => {
+      if (!user.email) return false;
+
+      const profile = profilesMap.get(user.id);
+
+      // Skip if weekly emails are disabled
+      if (profile?.weekly_email_enabled === false) {
+        return false;
       }
 
+      // Check if it's 9 AM Monday in the user's timezone
+      const userTimezone = profile?.timezone || "America/Mexico_City";
+      if (!isLocal9AMMonday(userTimezone)) {
+        skippedTimezone++;
+        return false;
+      }
+
+      return true;
+    });
+
+    console.log(`Filtered down to ${usersToProcess.length} users to process for this time slot`);
+
+    if (usersToProcess.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          emailsSent: 0,
+          skippedTimezone,
+          totalUsers: users.length,
+          message: "No users to process for this time slot"
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const filteredUserIds = usersToProcess.map(u => u.id);
+
+    // 3. Bulk fetch sessions for the past week for all filtered users
+    const { data: allSessions, error: allSessionsError } = await supabaseAdmin
+      .from("breathing_sessions")
+      .select("user_id, duration_seconds, technique")
+      .in("user_id", filteredUserIds)
+      .gte("completed_at", weekAgoISO);
+
+    if (allSessionsError) {
+      console.error("Error fetching sessions in bulk:", allSessionsError);
+      throw allSessionsError;
+    }
+
+    // Group sessions by user_id
+    const sessionsByUserId = new Map<string, any[]>();
+    allSessions?.forEach(session => {
+      const userSessions = sessionsByUserId.get(session.user_id) || [];
+      userSessions.push(session);
+      sessionsByUserId.set(session.user_id, userSessions);
+    });
+
+    // 4. Bulk fetch streaks for all filtered users
+    const { data: allStreaks, error: allStreaksError } = await supabaseAdmin
+      .from("daily_streaks")
+      .select("user_id, current_streak")
+      .in("user_id", filteredUserIds);
+
+    if (allStreaksError) {
+      console.error("Error fetching streaks in bulk:", allStreaksError);
+      throw allStreaksError;
+    }
+
+    const streaksByUserId = new Map(allStreaks?.map(s => [s.user_id, s]) || []);
+
+    // 5. Process filtered users and send emails
+    for (const user of usersToProcess) {
       try {
-        // Get display name, email preference, and timezone from profile
-        const { data: profileData } = await supabaseAdmin
-          .from("profiles")
-          .select("display_name, weekly_email_enabled, timezone")
-          .eq("user_id", user.id)
-          .maybeSingle();
+        const profileData = profilesMap.get(user.id);
+        const sessions = sessionsByUserId.get(user.id) || [];
+        const streakData = streaksByUserId.get(user.id);
 
-        // Skip user if weekly emails are disabled
-        if (profileData?.weekly_email_enabled === false) {
-          console.log(`Skipping user ${user.id} - weekly emails disabled`);
-          continue;
-        }
-
-        // Check if it's 9 AM Monday in the user's timezone
-        const userTimezone = profileData?.timezone || "America/Mexico_City";
-        if (!isLocal9AMMonday(userTimezone)) {
-          skippedTimezone++;
-          continue;
-        }
-
-        // Get sessions for the past week
-        const { data: sessions, error: sessionsError } = await supabaseAdmin
-          .from("breathing_sessions")
-          .select("duration_seconds, technique")
-          .eq("user_id", user.id)
-          .gte("completed_at", weekAgoISO);
-
-        if (sessionsError) {
-          console.error(`Error fetching sessions for user ${user.id}:`, sessionsError);
-          errors.push(`Sessions error for ${user.id}: ${sessionsError.message}`);
-          continue;
-        }
-
-        // Get current streak
-        const { data: streakData, error: streakError } = await supabaseAdmin
-          .from("daily_streaks")
-          .select("current_streak")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (streakError) {
-          console.error(`Error fetching streak for user ${user.id}:`, streakError);
-        }
-
-        const rawDisplayName = profileData?.display_name || user.user_metadata?.name || user.email.split("@")[0];
-        const displayName = escapeHtml(rawDisplayName);
+        const displayName = profileData?.display_name || user.user_metadata?.name || user.email!.split("@")[0];
         const hasActivity = sessions && sessions.length > 0;
         const totalMinutes = sessions?.reduce((acc, s) => acc + (s.duration_seconds / 60), 0) || 0;
 
